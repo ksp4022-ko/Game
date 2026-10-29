@@ -386,6 +386,15 @@ function findStep(st,maxLevel,U){
   const rel=(a,b)=>{const dy=(b/n|0)-(a/n|0),dx=b%n-a%n;
     if(Math.abs(dy)<=1&&Math.abs(dx)<=1){const v=dy<0?'上':dy>0?'下':'',h=dx<0?'左':dx>0?'右':'';return '緊貼在它'+(v&&h?h+v+'角':v?(v==='上'?'上面':'下面'):(h==='左'?'左邊':'右邊'))}
     return g[a]===g[b]?'跟它同顏色':(a/n|0)===(b/n|0)?'跟它同一橫排':'跟它同一直排'};
+  const label=(j,c)=>{const y=j/n|0,x=j%n,same=f=>c.every(q=>f(q)===f(j));
+    if(c.length===2){const o=c.find(q=>q!==j),oy=o/n|0,ox=o%n;if(ox===x)return y<oy?'上面那格':'下面那格';if(oy===y)return x<ox?'左邊那格':'右邊那格'}
+    const nm=REGION_NAMES[PAL[g[j]]];if(c.filter(q=>g[q]===g[j]).length===1)return nm+'那格';
+    const ys=c.map(q=>q/n|0);return y===Math.min(...ys)?'最上面那格':y===Math.max(...ys)?'最下面那格':'中間那格'};
+  const caseWhy=(k,j)=>{const dy=Math.abs((j/n|0)-(k/n|0)),dx=Math.abs(j%n-k%n);
+    if(dy<=1&&dx<=1)return '紅框格就緊貼在它旁邊';if(g[k]===g[j])return '它跟紅框格同顏色，'+REGION_NAMES[PAL[g[j]]]+'只能有一隻';
+    return dy===0?'它跟紅框格在同一橫排':'它跟紅框格在同一直排'};
+  const caseMsg=(u,c,k)=>`${u.name}只剩${F('虛線框')}這 ${c.length} 格，墨糰一定在其中一格：`+
+    c.map(j=>`<br>・如果在${label(j,c)}：${caseWhy(k,j)}，紅框格不能放。`).join('')+`<br>不管是哪一種，紅框格都不能放，所以打叉。`;
   const why=(k,c)=>{const m={};c.forEach(j=>{const r=rel(k,j);m[r]=(m[r]||0)+1});const p=Object.entries(m);return p.length===1&&c.length>1?`這 ${c.length} 格都${p[0][0]}`:p.map(([r,v])=>`${v} 格${r}`).join('、')};const cs=u=>u.cells.filter(k=>cand[k]);
   // L1a: Xs around an existing guinea pig
   for(let k=0;k<n*n;k++)if(pig[k]){const e=[];for(let j=0;j<n*n;j++)if(cand[j]&&attacks(n,g,k,j))e.push(j);
@@ -404,7 +413,7 @@ function findStep(st,maxLevel,U){
   // start from the tightest unit (fewest open cells), the way a person would look
   const tight=U.filter(u=>!has(u)).map(u=>({u,c:cs(u)})).filter(x=>x.c.length>=2).sort((a,b)=>a.c.length-b.c.length);
   for(const{u,c}of tight){const e=[];for(let k=0;k<n*n;k++){if(!cand[k]||u.cells.includes(k))continue;if(c.every(j=>attacks(n,g,k,j)))e.push(k)}
-    if(e.length){e.length=1;return{level:3,elim:e,focus:c,msg:H(`${T('紅框格')}打叉`,`${u.name}只剩${F('虛線框')}這 ${c.length} 格。紅框格如果放墨糰，會把這 ${c.length} 格全部擋掉（${why(e[0],c)}），${u.name}就沒地方放了。`)}}}
+    if(e.length){e.length=1;return{level:3,elim:e,focus:c,msg:H(`${T('紅框格')}打叉`,caseMsg(u,c,e[0]))}}}
   if(maxLevel<4)return null;
   // L4: N regions packed into N rows/columns (and the reverse)
   const groups=[['reg','row'],['reg','col'],['row','reg'],['col','reg']];
