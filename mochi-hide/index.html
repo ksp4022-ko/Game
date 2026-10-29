@@ -186,6 +186,13 @@ body.zoom .zoomOut svg{width:16px;height:16px}
 .zoomOut:focus-visible{outline:3px solid var(--red);outline-offset:2px}
 .toast{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));top:calc(8px + env(safe-area-inset-top,0px));max-width:488px;margin:0 auto;z-index:30;padding:8px 12px;font-size:13px;line-height:1.5;border-radius:14px;box-shadow:0 3px 0 var(--ink);animation:rise .3s ease-out}
 .toast .head{display:block;font-size:14px}.toast small{display:block;color:var(--muted);font-size:12px}.toast .tg{color:var(--red)}.toast .fc{text-decoration:underline dashed;text-underline-offset:3px}
+.lvGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;max-height:132px;overflow-y:auto;padding:2px}
+.lvBtn{font:inherit;color:var(--ink);background:var(--card);border:2px solid var(--ink);border-radius:10px;padding:4px 0 3px;cursor:pointer;display:grid;gap:1px;line-height:1.1}
+.lvBtn b{font:800 16px/1 var(--num)}
+.lvBtn span{font-size:10px;color:#c9a33f;letter-spacing:-.5px}
+.lvBtn.new span{color:var(--muted)}
+.lvBtn.cur{background:var(--sun)}
+.settings .group small{font-size:12px;font-weight:400}
 .spList{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .spBtn{font:inherit;font-size:14.5px;color:var(--ink);background:var(--card);border:2px solid var(--ink);border-radius:12px;padding:8px;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
 .spBtn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
@@ -250,6 +257,7 @@ body.zoom .zoomOut svg{width:16px;height:16px}
     <div class="overlay settings" id="settings" hidden>
       <div class="group"><span>大小</span><div class="seg" data-key="n"><button data-v="6">6×6</button><button data-v="7">7×7</button><button data-v="8">8×8</button><button data-v="9">9×9</button></div></div>
       <div class="group"><span>難度</span><div class="seg" data-key="d"><button data-v="0">簡單</button><button data-v="1">普通</button><button data-v="2">困難</button><button data-v="3">超難</button></div></div>
+      <div class="group"><span>選關卡　<small id="lvInfo"></small></span><div class="lvGrid" id="lvGrid"></div></div>
       <div class="group"><span>特別關</span><div class="spList" id="spList"></div></div>
       <div class="group"><span>音效</span><div class="seg" data-key="snd"><button data-v="1">開</button><button data-v="0">關</button></div></div>
       <button class="primary" id="setGo">開始</button>
@@ -570,6 +578,8 @@ function render(){
   if(bad.size>lastBad)SFX.bad();lastBad=bad.size;
   if(pigs.length===S.n&&bad.size===0&&!S.won){S.won=true;if(!S.sp)store.set('gp-lv-'+K(),S.level+1);store.set('gp-bd-'+K(),null);
     const stars=S.mistakes===0&&S.hints===0?3:S.mistakes<=1&&S.hints<=1?2:1,bk='gp-best-'+K()+'-'+S.level,best=store.get(bk,null);
+    if(!S.sp){store.set('gp-max-'+K(),Math.max(maxLv(K()),S.level+1))}
+    const sk='gp-star-'+K()+'-'+S.level;store.set(sk,Math.max(store.get(sk,0),stars));
     if(best===null||S.secs<best)store.set(bk,S.secs);
     const STAR='<svg viewBox="0 0 24 24"><path d="M12 2.6l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.2l-5.9 3.2 1.3-6.5L2.5 9.4l6.6-.8z" fill="#ffcf4d" stroke="#2a1f17" stroke-width="2" stroke-linejoin="round"/></svg>';
     $('stars').innerHTML=[0,1,2].map(i=>STAR.replace('<svg ',`<svg class="${i<stars?'on':'off'}" style="--sd:${300+i*180}ms" `)).join('');
@@ -684,8 +694,16 @@ setZoom(!!store.get('gp-zoom',0));
 $('helpBtn').onclick=()=>{$('settings').hidden=true;$('help').hidden=!$('help').hidden};$('helpClose').onclick=()=>{$('help').hidden=true};
 let pick={};
 function syncSeg(){document.querySelectorAll('.seg').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.v===pick[sg.dataset.key]))))}
-$('setBtn').onclick=()=>{const open=$('settings').hidden;$('help').hidden=true;if(open){pick={n:S.sp?Number(store.get('gp-size',7)):S.n,d:S.d,snd:S.snd};syncSeg()}$('settings').hidden=!open};
-document.querySelectorAll('.seg').forEach(sg=>sg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;pick[sg.dataset.key]=+b.dataset.v;syncSeg()}));
+// level picker: every level up to the furthest one reached can be replayed
+function maxLv(k){return Math.max(store.get('gp-max-'+k,1),store.get('gp-lv-'+k,1))}
+function renderLv(){const k=pick.n+'-'+pick.d,mx=maxLv(k),cur=!S.sp&&pick.n===S.n&&pick.d===S.d?S.level:-1,g=$('lvGrid');g.innerHTML='';
+  $('lvInfo').textContent=`${pick.n}×${pick.n} ${D_NAME[pick.d]}，已到第 ${mx} 關`;
+  for(let i=mx;i>=1;i--){const b=document.createElement('button'),st=store.get('gp-star-'+k+'-'+i,0);b.className='lvBtn'+(i===cur?' cur':'')+(st?'':' new');
+    b.innerHTML=`<b>${i}</b><span>${st?'★'.repeat(st)+'☆'.repeat(3-st):i===mx?'未過':'—'}</span>`;b.setAttribute('aria-label',`第 ${i} 關`);
+    b.onclick=()=>{$('settings').hidden=true;save();if(S.sp)leaveSpecial();S.snd=pick.snd;store.set('gp-snd',S.snd);S.n=pick.n;S.d=pick.d;
+      store.set('gp-size',S.n);store.set('gp-level-kind',S.d);store.set('gp-lv-'+k,i);S.g=[];load()};g.appendChild(b)}}
+$('setBtn').onclick=()=>{const open=$('settings').hidden;$('help').hidden=true;if(open){pick={n:S.sp?Number(store.get('gp-size',7)):S.n,d:S.d,snd:S.snd};syncSeg();renderLv()}$('settings').hidden=!open};
+document.querySelectorAll('.seg').forEach(sg=>sg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;pick[sg.dataset.key]=+b.dataset.v;syncSeg();renderLv()}));
 $('setGo').onclick=()=>{$('settings').hidden=true;S.snd=pick.snd;store.set('gp-snd',S.snd);if(!S.sp&&pick.n===S.n&&pick.d===S.d)return;save();if(S.sp)leaveSpecial();S.n=pick.n;S.d=pick.d;
   store.set('gp-size',S.n);store.set('gp-level-kind',S.d);S.g=[];load()};
 
