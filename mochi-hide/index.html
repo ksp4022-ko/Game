@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>墨糰藏哪裡</title>
+<meta name="description" content="墨糰版的區塊邏輯解謎：每色、每排各一隻墨糰，關卡依推理難度無限生成。">
+<meta name="theme-color" content="#efe8dc">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="墨糰藏哪裡">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;overscroll-behavior:none}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Huninn&display=swap">
+<style>
+/* Layout B, sticker style: one thick-outlined info bar, the board as the biggest card, a pig mascot that talks in a speech bubble, and a sticker dock of tools.
+   Single light theme on purpose: cream paper, ink outlines, hard offset shadows. */
+:root{
+  --paper:#efe8dc; --paper-2:#e4dacb; --card:#fbf8f2; --ink:#2a1f17; --muted:#8a6d52; --line:#2a1f17;
+  --red:#c0716a; --red-dk:#9a554f; --sun:#e8cb7f; --leaf:#8fa77e; --danger:#c65a52; --accent:#c0716a; --x:#ffffff;
+  --r1:#d0996c; --r2:#6489b0; --r3:#afbe9a; --r4:#826692; --r5:#eddeaa; --r6:#f3c0cd; --r7:#9a9088; --r8:#7a5442; --r9:#b56a5c; --r10:#68b1af; --r11:#3a495e;
+  --num:"Baloo 2", "Huninn", ui-rounded, system-ui, sans-serif;
+  --body:"Huninn", ui-rounded, "PingFang TC", "Noto Sans TC", system-ui, sans-serif;
+  --hard:0 4px 0 var(--ink);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--paper);background-image:radial-gradient(circle at 92% 8%,var(--paper-2) 0 90px,transparent 91px),radial-gradient(circle at 4% 62%,var(--paper-2) 0 70px,transparent 71px);color:var(--ink);font-family:var(--body);-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.app{max-width:520px;min-height:100%;margin:0 auto;padding-block:10px 14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:9px}
+.sticker{background:var(--card);border:2.5px solid var(--ink);border-radius:20px;box-shadow:var(--hard)}
+
+header{display:flex;align-items:center;gap:8px;padding:6px 8px 6px 6px;border-radius:999px}
+.avatar{width:36px;height:36px;flex:none;border-radius:50%;border:2.5px solid var(--ink);background:var(--sun);display:grid;place-items:center;overflow:hidden}
+.avatar svg{width:36px;height:36px;margin-top:4px}
+.lvl{font-size:14px;white-space:nowrap;display:flex;align-items:baseline;gap:2px}
+.lvl b{font-family:var(--num);font-weight:800;font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
+.time{display:flex;align-items:center;gap:3px;font-family:var(--num);font-weight:700;font-size:16px;color:var(--muted);font-variant-numeric:tabular-nums;margin-right:auto}
+.time svg{width:15px;height:15px}
+.pill{display:flex;align-items:center;gap:3px;font:inherit;font-size:14px;color:var(--ink);background:var(--paper);border:2px solid var(--ink);border-radius:999px;padding:5px 8px 5px 11px;cursor:pointer;white-space:nowrap}
+.pill svg{width:13px;height:13px}
+.iconBtn{width:32px;height:32px;flex:none;border-radius:50%;border:2px solid var(--ink);background:var(--sun);color:var(--ink);font:inherit;font-family:var(--num);font-weight:800;font-size:17px;line-height:1;cursor:pointer}
+
+.sub{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 4px}
+.rules{margin:0;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.progress{display:flex;gap:3px;flex:none;padding-bottom:3px}
+.progress i{position:relative;width:26px;height:24px;display:block;transition:transform .3s}
+.progress i svg{width:24px;height:24px;filter:grayscale(1);opacity:.4;transition:opacity .2s,filter .2s}
+.progress i.on{transform:translateY(-2px)}
+.progress i.on svg{filter:none;opacity:1}
+.progress b{position:absolute;right:-2px;bottom:-4px;min-width:15px;height:15px;padding:0 3px;border-radius:8px;background:var(--card);border:1.5px solid var(--ink);font:800 10.5px/1 var(--num);display:grid;place-items:center;color:var(--ink)}
+.progress b.one{background:var(--sun)}
+.progress b.zero{background:var(--red);color:#fff}
+.cell{transition:opacity .25s,filter .25s}
+.cell.done{opacity:.42;filter:saturate(.4)}
+.cell.lone{animation:lone 1.1s ease-in-out infinite;z-index:1}
+@keyframes lone{0%,100%{transform:none}50%{transform:translateY(-3px) scale(1.05)}}
+
+.boardWrap{position:relative;width:min(100%,calc(100dvh - 290px));min-width:260px;align-self:center;padding:5px;border-radius:16px}
+#board{display:grid;gap:clamp(2px,.6vw,3px);aspect-ratio:1;width:100%;touch-action:none}
+.cell{position:relative;min-width:0;min-height:0;overflow:hidden;aspect-ratio:1;border-radius:14%;border:none;padding:0;cursor:pointer;display:grid;place-items:center;background:var(--c);
+  box-shadow:inset 0 -2px 0 #0000001a}
+.cell .glyph{width:44%;height:44%;fill:var(--gl,#00000026)}
+.cell[data-r="0"]{--xo:color-mix(in srgb,var(--c) 55%,#2a1f17);--gl:#00000030}
+.cell[data-r="2"]{--xo:color-mix(in srgb,var(--c) 55%,#2a1f17);--gl:#00000030}
+.cell[data-r="4"]{--xo:color-mix(in srgb,var(--c) 55%,#2a1f17);--gl:#00000030}
+.cell[data-r="5"]{--xo:color-mix(in srgb,var(--c) 55%,#2a1f17);--gl:#00000030}
+.cell[data-r="9"]{--xo:color-mix(in srgb,var(--c) 55%,#2a1f17);--gl:#00000030}
+.cell svg{position:absolute;inset:0;margin:auto;display:block}
+.cell .x{width:46%;height:46%;animation:xin .22s cubic-bezier(.3,1.8,.5,1)}
+.cell.down{transform:scale(.9);box-shadow:none;transition:transform .05s,box-shadow .05s}
+.cell.stamp{animation:stamp .32s ease-out}
+@keyframes stamp{0%{box-shadow:inset 0 -2px 0 #0000001a,0 0 0 0 #ffffffcc}100%{box-shadow:inset 0 -2px 0 #0000001a,0 0 0 8px #ffffff00}}
+.cell .pig{width:84%;height:84%;animation:hop .42s cubic-bezier(.3,1.6,.5,1)}
+.cell .dx{width:34%;height:34%;opacity:.75}
+.cell .dpig{width:62%;height:62%;opacity:.5}
+.cell .q{position:absolute;right:6%;top:4%;font-family:var(--num);font-weight:800;font-size:clamp(11px,3.4vw,17px);line-height:1;color:#fff;text-shadow:0 0 3px var(--ink)}
+.cell:focus-visible{outline:3px solid var(--sun);outline-offset:-3px}
+.cell.bad .pig{animation:shake .4s}
+.cell.bad::after{content:"";position:absolute;inset:3px;border:3px solid var(--danger);border-radius:12%;z-index:1}
+.cell.hint::after{content:"";position:absolute;inset:3px;border:3px solid var(--ink);border-radius:12%;animation:blink .5s 3}
+.cell.focus::before{content:"";position:absolute;inset:3px;border:2.5px dashed var(--ink);border-radius:12%;opacity:.85;z-index:1}
+.cell.target::before{content:"";position:absolute;inset:1px;border:4px solid var(--red);border-radius:12%;z-index:1;animation:pulse 1s ease-in-out infinite}
+.cell .ghost{opacity:.6;animation:pulse 1s ease-in-out infinite}
+.boardWrap.draft{outline:3px dashed var(--red);outline-offset:3px}
+.cell.wave .pig{animation:wave .6s ease-in-out both;animation-delay:var(--dl)}
+@keyframes hop{0%{transform:translateY(30%) scale(.3,.2)}55%{transform:translateY(-12%) scale(1.05,1.1)}80%{transform:translateY(2%) scale(1.06,.92)}100%{transform:none}}
+@keyframes xin{0%{transform:scale(1.7) rotate(-25deg);opacity:0}60%{transform:scale(.88);opacity:1}100%{transform:none}}
+@keyframes wave{0%,100%{transform:none}40%{transform:translateY(-22%) scale(1.06)}}
+@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+@keyframes blink{50%{opacity:0}}
+@keyframes pulse{50%{opacity:.35}}
+.eyes{transform-box:fill-box;transform-origin:center;animation:mblink 5s infinite}
+@keyframes mblink{0%,94%,100%{transform:none}96.5%{transform:scaleY(.12)}}
+
+.talk{display:flex;align-items:flex-end;gap:6px;min-height:58px}
+.mascot{width:46px;height:46px;flex:none;animation:bob 2.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-3px)}}
+.tip{position:relative;flex:1;min-width:0;font-size:13px;line-height:1.5;padding:7px 11px;border-radius:14px;box-shadow:0 3px 0 var(--ink);text-wrap:pretty}
+.tip::before{content:"";position:absolute;left:-8px;bottom:12px;width:12px;height:12px;background:var(--card);border-left:2.5px solid var(--ink);border-bottom:2.5px solid var(--ink);transform:rotate(45deg)}
+.tip .head{display:block;font-size:14.5px;color:var(--ink);letter-spacing:.02em}
+.tip small{display:block;margin-top:1px;font-size:12px;color:var(--muted)}
+.tip .tg{color:var(--red)}
+.tip .fc{text-decoration:underline dashed;text-underline-offset:3px}
+
+.tools{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;margin-top:auto;padding:6px 4px;border-radius:22px}
+.tools button{font:inherit;font-size:12px;color:var(--ink);background:transparent;border:none;border-radius:14px;padding:5px 0 4px;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.tools button span{border:2px solid var(--ink);border-radius:999px;padding:0 7px;background:var(--card);line-height:1.45}
+.tools button:active{transform:translateY(2px)}
+.tools button[aria-pressed="true"] span{background:var(--sun)}
+.tools button[aria-pressed="true"] svg{color:var(--red)}
+.tools svg{width:25px;height:25px}
+.tools button:focus-visible,.pill:focus-visible,.iconBtn:focus-visible,.seg button:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+
+.overlay{position:absolute;inset:0;border-radius:20px;z-index:3;background:color-mix(in srgb,var(--card) 92%,transparent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center}
+.overlay h2{margin:0;font-size:26px;font-weight:400}
+.overlay p{margin:0;color:var(--muted);font-family:var(--num);font-weight:700;font-size:17px}
+.overlay .big{width:120px;height:120px;animation:hop .6s cubic-bezier(.3,1.6,.5,1)}
+#win:not([hidden]) .wincard{animation:rise .45s cubic-bezier(.3,1.5,.5,1)}
+@keyframes rise{from{transform:translateY(30px) scale(.9);opacity:0}}
+.wincard{display:flex;flex-direction:column;align-items:center;gap:8px}
+.primary{font:inherit;font-size:18px;background:var(--red);color:#fff;border:2.5px solid var(--ink);border-radius:999px;padding:9px 34px;cursor:pointer;box-shadow:var(--hard);text-shadow:0 2px 0 var(--red-dk)}
+.primary:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.help ul{margin:0;padding:0 18px;list-style:none;display:grid;gap:10px;text-align:left;font-size:14.5px;line-height:1.5;max-width:300px}
+.help li b{display:block;font-weight:400;font-size:13px;color:var(--red)}
+.settings{gap:12px;padding:14px;overflow:auto;justify-content:safe center}
+.settings .group{display:grid;gap:5px;width:100%;max-width:330px}
+.settings .group>span{font-size:13px;color:var(--muted);text-align:left}
+.seg{display:flex;gap:4px;background:var(--paper);border:2px solid var(--ink);border-radius:14px;padding:3px}
+.seg button{flex:1;font:inherit;font-size:14.5px;color:var(--ink);background:transparent;border:none;border-radius:10px;padding:7px 2px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--sun);box-shadow:inset 0 0 0 2px var(--ink)}
+/* lives */
+.lives{display:flex;gap:2px;flex:none}
+.lives svg{width:20px;height:20px;transition:transform .3s}
+.lives svg.lost{filter:grayscale(1);opacity:.35;transform:scale(.85)}
+.lives svg.break{animation:heartbreak .6s ease-out}
+@keyframes heartbreak{30%{transform:scale(1.4) rotate(-12deg)}60%{transform:scale(.8) rotate(10deg)}}
+/* auto-exclude: faint X drawn by the game, not stored */
+.cell .ax{width:40%;height:40%;opacity:.55}
+/* long press ring */
+.cell.press::after{content:"";position:absolute;inset:2px;border:3px solid #fff;border-radius:12%;z-index:2;animation:pressring .24s linear .09s both}
+@keyframes pressring{from{transform:scale(.35);opacity:0}to{transform:none;opacity:1}}
+/* territory ripple after a correct 墨糰 */
+.cell.rip{animation:rip .55s ease-out both;animation-delay:var(--rd)}
+@keyframes rip{40%{transform:scale(.9);filter:brightness(1.3)}100%{transform:none}}
+.cell.wrong{animation:wrongshake .45s}
+.cell.wrong::after{content:"";position:absolute;inset:0;background:var(--red);opacity:.55;border-radius:20%;animation:fadeout .7s forwards;z-index:2}
+@keyframes wrongshake{20%,60%{transform:translateX(-4px)}40%,80%{transform:translateX(4px)}}
+@keyframes fadeout{to{opacity:0}}
+/* floating words */
+.pop{position:absolute;z-index:5;pointer-events:none;transform:translate(-50%,-50%);font:800 22px/1 var(--num);white-space:nowrap;color:var(--sun);
+  -webkit-text-stroke:5px var(--ink);paint-order:stroke fill;animation:floatup 1s cubic-bezier(.2,1.4,.4,1) forwards}
+.pop.err{color:#fff;background:var(--red);-webkit-text-stroke:0;border:2.5px solid var(--ink);border-radius:999px;padding:5px 12px;font:16px/1 var(--body)}
+.pop.big{font-size:30px}
+.pop.combo{color:#ff9a3c}
+@keyframes floatup{0%{opacity:0;transform:translate(-50%,-20%) scale(.5)}25%{opacity:1;transform:translate(-50%,-70%) scale(1.15)}70%{opacity:1;transform:translate(-50%,-110%) scale(1)}100%{opacity:0;transform:translate(-50%,-150%) scale(.95)}}
+.stars{display:flex;gap:4px}
+.stars svg{width:38px;height:38px}
+.stars svg.off{filter:grayscale(1);opacity:.3}
+.stars svg.on{animation:starin .5s cubic-bezier(.3,1.7,.5,1) both;animation-delay:var(--sd)}
+@keyframes starin{from{transform:scale(0) rotate(-40deg)}}
+.perfect{font-size:16px;color:var(--red)}
+/* zoom mode: only lives, found row and the board, board as big as the screen allows */
+.zoomBtn{display:grid;place-items:center;padding:0}
+.zoomBtn svg{width:17px;height:17px}
+@media (max-width:379px){.avatar{display:none}}
+.zoomOut{display:none}
+body.zoom .talk{display:none}
+body.zoom .boardWrap{width:min(100%,calc(100dvh - 205px))}
+.zoomBtn .zi-out{display:none}
+body.zoom .zoomBtn .zi-in{display:none}
+body.zoom .zoomBtn .zi-out{display:block}
+body.zoom .zoomBtn{background:var(--red);color:#fff}
+.zoomOut.unused{display:flex;align-items:center;gap:5px;position:fixed;z-index:20;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));
+  font:inherit;font-size:14px;color:var(--ink);background:var(--sun);border:2.5px solid var(--ink);border-radius:999px;padding:7px 14px 7px 11px;box-shadow:0 3px 0 var(--ink);cursor:pointer}
+body.zoom .zoomOut svg{width:16px;height:16px}
+.zoomOut:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.toast{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));top:calc(8px + env(safe-area-inset-top,0px));max-width:488px;margin:0 auto;z-index:30;padding:8px 12px;font-size:13px;line-height:1.5;border-radius:14px;box-shadow:0 3px 0 var(--ink);animation:rise .3s ease-out}
+.toast .head{display:block;font-size:14px}.toast small{display:block;color:var(--muted);font-size:12px}.toast .tg{color:var(--red)}.toast .fc{text-decoration:underline dashed;text-underline-offset:3px}
+.spList{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.spBtn{font:inherit;font-size:14.5px;color:var(--ink);background:var(--card);border:2px solid var(--ink);border-radius:12px;padding:8px;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
+.spBtn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.progress.tight{gap:0}
+.progress.tight i{width:22px;height:22px}
+.progress.tight i svg{width:21px;height:21px}
+.progress.tight b{min-width:14px;height:14px;font-size:9.5px;right:-3px}
+#confetti{position:absolute;inset:-20px;pointer-events:none;z-index:4;width:calc(100% + 40px);height:calc(100% + 40px)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs id="pigDefs"></defs>
+  <symbol id="g0" viewBox="0 0 24 24"><circle cx="12" cy="15" r="5"/><circle cx="6" cy="9" r="2.3"/><circle cx="10" cy="5.5" r="2.3"/><circle cx="14" cy="5.5" r="2.3"/><circle cx="18" cy="9" r="2.3"/></symbol>
+  <symbol id="g1" viewBox="0 0 24 24"><path d="M4 20C4 10 10 4 20 4c0 10-6 16-16 16z"/></symbol>
+  <symbol id="g2" viewBox="0 0 24 24"><path d="M12 21s-8-5-8-11a4.5 4.5 0 018-2.8A4.5 4.5 0 0120 10c0 6-8 11-8 11z"/></symbol>
+  <symbol id="g3" viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="4.5"/><circle cx="7" cy="15" r="4.5"/><circle cx="17" cy="15" r="4.5"/></symbol>
+  <symbol id="g4" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5-4.9-4.5 6.6-.8z"/></symbol>
+  <symbol id="g5" viewBox="0 0 24 24"><path d="M12 2.5c4.5 5.5 7 9 7 12a7 7 0 01-14 0c0-3 2.5-6.5 7-12z"/></symbol>
+  <symbol id="g6" viewBox="0 0 24 24"><path d="M12 3a9 9 0 110 18 9 9 0 010-18zm0 4.5a4.5 4.5 0 100 9 4.5 4.5 0 000-9z" fill-rule="evenodd"/></symbol>
+  <symbol id="g7" viewBox="0 0 24 24"><path d="M12 2.5l8.5 9.5-8.5 9.5L3.5 12z"/></symbol>
+  <symbol id="g8" viewBox="0 0 24 24"><path d="M15 2.5a9.5 9.5 0 100 19 12 12 0 010-19z"/></symbol>
+  <symbol id="g9" viewBox="0 0 24 24"><path d="M12 3.5l2.4 5.6 5.6 2.4-5.6 2.4L12 19.5l-2.4-5.6L4 11.5l5.6-2.4z"/></symbol>
+  <symbol id="g10" viewBox="0 0 24 24"><path d="M3 15c3-4 6-4 9 0s6 4 9 0v4c-3 4-6 4-9 0s-6-4-9 0z"/></symbol>
+  <symbol id="xmark" viewBox="0 0 10 10"><path d="M2 2l6 6M8 2l-6 6" stroke="var(--xo,transparent)" stroke-width="3.8" stroke-linecap="round"/><path d="M2 2l6 6M8 2l-6 6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="app">
+  <div class="toast sticker" id="toast" hidden></div>
+  <header class="sticker">
+    <div class="avatar"><svg><use href="#mochiLook"/></svg></div>
+    <div class="lvl">第<b id="lvl">1</b>關</div>
+    <div class="time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2h4"/></svg><span id="time">0:00</span></div>
+    <button class="pill" id="setBtn" aria-label="遊戲設定"><span id="setLabel">7×7 普通</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+    <button class="iconBtn" id="helpBtn" aria-label="玩法說明">?</button>
+    <button class="iconBtn zoomBtn" id="zoomIn" aria-label="放大棋盤" aria-pressed="false"><svg class="zi-in" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-6.5 6.5M4 20l6.5-6.5"/></svg><svg class="zi-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M10 14l-6.5 6.5M14 10l6.5-6.5"/></svg></button>
+  </header>
+  <div class="sub">
+    <div class="lives" id="lives" aria-label="剩下 3 次放錯機會"></div>
+    <div class="progress" id="prog" aria-label="已找到的墨糰"></div>
+  </div>
+  <div class="boardWrap sticker" id="wrap">
+    <div id="board" role="grid" aria-label="遊戲盤面"></div>
+    <div class="overlay" id="win" hidden>
+      <div class="wincard">
+        <svg class="big" id="winPig"><use href="#mochiHappy"/></svg>
+        <div class="stars" id="stars"></div>
+        <h2 id="winTitle">全部找到了！</h2>
+        <p id="winTime"></p>
+        <button class="primary" id="next">下一關</button>
+      </div>
+    </div>
+    <div class="overlay" id="lose" hidden>
+      <div class="wincard">
+        <svg class="big"><use href="#mochiSurprised"/></svg>
+        <h2>放錯 3 次了</h2>
+        <p>這局要重新開始</p>
+        <button class="primary" id="retry">重新開始</button>
+      </div>
+    </div>
+    <div class="overlay settings" id="settings" hidden>
+      <div class="group"><span>大小</span><div class="seg" data-key="n"><button data-v="6">6×6</button><button data-v="7">7×7</button><button data-v="8">8×8</button><button data-v="9">9×9</button></div></div>
+      <div class="group"><span>難度</span><div class="seg" data-key="d"><button data-v="0">簡單</button><button data-v="1">普通</button><button data-v="2">困難</button><button data-v="3">超難</button></div></div>
+      <div class="group"><span>特別關</span><div class="spList" id="spList"></div></div>
+      <div class="group"><span>音效</span><div class="seg" data-key="snd"><button data-v="1">開</button><button data-v="0">關</button></div></div>
+      <button class="primary" id="setGo">開始</button>
+    </div>
+    <div class="overlay help" id="help" hidden>
+      <ul>
+        <li><b>點一下</b>打叉，再點一下取消</li>
+        <li><b>點兩下或長按</b>放墨糰。放下就會告訴你對不對，一局只能放錯 3 次</li>
+        <li><b>拖曳</b>沿路補上叉；整段都是叉時改成清除</li>
+        <li><b>排除</b>開啟後，放好的墨糰同排、同色和周圍會自動變淡打叉</li>
+        <li><b>記號</b>開啟後放的是半透明的「不確定」標記，按清記號一次清掉</li>
+        <li><b>提示</b>先說明原因，再按一次幫你標上</li>
+      </ul>
+      <button class="primary" id="helpClose">知道了</button>
+    </div>
+    <canvas id="confetti" hidden></canvas>
+  </div>
+  <div class="talk">
+    <svg class="mascot" aria-hidden="true"><use href="#mochiLook"/></svg>
+    <div class="tip sticker" id="tip" aria-live="polite">卡住了？先看格子最少的顏色，或按提示。</div>
+  </div>
+  <div class="tools sticker">
+    <button id="undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg><span>復原</span></button>
+    <button id="hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z" fill="var(--sun)"/></svg><span>提示</span></button>
+    <button id="auto" aria-pressed="false" aria-label="自動排除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 5l5 5M10 5l-5 5M14 14l5 5M19 14l-5 5"/><circle cx="17" cy="7" r="3"/></svg><span>排除</span></button>
+    <button id="draft" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 7l3 3"/></svg><span>記號</span></button>
+    <button id="clearDraft"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21h10"/><path d="M5 14l7-9 7 6-6 8H8z"/><path d="M9 9l6 5"/></svg><span>清記號</span></button>
+    <button id="reset"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.7 9.7 0 00-6.7 2.8L3 8"/><path d="M3 3v5h5"/></svg><span>重來</span></button>
+  </div>
+</div>
+
+<script>
+// ---------- 墨糰: an ink-black blob with two white pill eyes, in a white sticker ring. One body shape per colour region. ----------
+const INK='#14161c';
+const MID=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2],F2=v=>Math.round(v*1000)/1000;
+function roundPoly(pts){const n=pts.length;let m=MID(pts[n-1],pts[0]),d=`M${F2(m[0])} ${F2(m[1])}`;
+  for(let i=0;i<n;i++){const p=pts[i],q=MID(p,pts[(i+1)%n]);d+=`Q${F2(p[0])} ${F2(p[1])} ${F2(q[0])} ${F2(q[1])}`}return d+'Z'}
+function squircle(){let d='';for(let i=0;i<=72;i++){const a=i/72*Math.PI*2,c=Math.cos(a),s=Math.sin(a),x=.96*Math.sign(c)*Math.sqrt(Math.abs(c)),y=.96*Math.sign(s)*Math.sqrt(Math.abs(s));d+=(i?'L':'M')+F2(x)+' '+F2(y)}return d+'Z'}
+const hexPts=[...Array(6)].map((_,i)=>[1.04*Math.cos(i/6*Math.PI*2),1.04*Math.sin(i/6*Math.PI*2)]);
+// each shape: list of SVG elements (filled together, so overlapping parts read as one body), eye height offset and eye scale
+const MOCHI=[
+  {els:['<circle r="1"/>'],ey:0,es:1},                                                                                       // circle
+  {els:['<path d="M-.95 .1C-1 -.6 -.4 -.95 .15 -.9C.75 -.85 1.05 -.4 1 .15C.95 .7 .45 .92 -.1 .9C-.6 .88 -.92 .6 -.95 .1Z"/>'],ey:0,es:1}, // pebble
+  {els:[`<path d="${squircle()}"/>`],ey:0,es:1},                                                                             // squircle
+  {els:['<rect x="-1.15" y="-.7" width="2.3" height="1.4" rx=".7"/>'],ey:0,es:.9},                                          // capsule
+  {els:[`<path d="${roundPoly([[0,-1.15],[1.2,.92],[-1.2,.92]])}"/>`],ey:.3,es:.66},                                          // triangle
+  {els:[`<path d="${roundPoly(hexPts)}"/>`],ey:0,es:.92},                                                                     // hexagon
+  {els:['<circle cx="-.6" cy=".3" r=".5"/>','<circle cx=".6" cy=".3" r=".5"/>','<circle cx="0" cy=".32" r=".5"/>','<circle cx="-.22" cy="-.3" r=".56"/>','<circle cx=".4" cy="-.1" r=".46"/>','<rect x="-.6" y=".3" width="1.2" height=".5"/>'],ey:.12,es:.78}, // cloud
+  {els:['<path d="M0 -1.12C.22 -.62 .86 -.15 .86 .34A.86 .86 0 0 1 -.86 .34C-.86 -.15 -.22 -.62 0 -1.12Z"/>'],ey:.34,es:.74}, // droplet
+  {els:['<circle cx="-.58" cy="-.69" r=".32"/>','<circle cx=".58" cy="-.69" r=".32"/>','<circle r="1"/>'],ey:.04,es:.96,ears:1}, // round with ears
+  {els:['<rect x="-.72" y="-1.1" width="1.44" height="2.2" rx=".72"/>'],ey:-.05,es:.8},                                     // tall capsule
+  {els:[`<path d="${roundPoly([[0,-1.18],[1.12,0],[0,1.18],[-1.12,0]])}"/>`],ey:0,es:.78}                                      // diamond
+];
+const EXPR={look:{w:.19,h:.4,dx:.3,dy:0,gx:.12,gy:-.14,tilt:.22},calm:{w:.16,h:.44,dx:.3,dy:-.04,gx:0,gy:0,tilt:0},happy:{w:.26,h:.34,dx:.3,dy:0,gx:0,gy:0,tilt:0,smile:.5},surprised:{w:.24,h:.48,dx:.33,dy:-.08,gx:0,gy:0,tilt:0},sleepy:{w:.25,h:.32,dx:.3,dy:.06,gx:0,gy:0,tilt:0,lid:.62}};
+function mochiSymbol(id,shapeIdx,ex,blinkDelay){const m=MOCHI[shapeIdx],E=EXPR[ex],k=1.16*m.es,body=m.els.join('');
+  const eyes=[-1,1].map(sd=>{const w=E.w*k,h=E.h*k,cx=k*(sd*E.dx+E.gx),cy=m.ey+k*(E.dy+E.gy),rot=E.tilt*180/Math.PI;
+    let el=`<rect x="${F2(cx-w/2)}" y="${F2(cy-h/2)}" width="${F2(w)}" height="${F2(h)}" rx="${F2(Math.min(w,h)/2)}" fill="#fff" transform="rotate(${F2(rot)} ${F2(cx)} ${F2(cy)})"/>`;
+    if(E.smile){const R=E.w*1.25*k;el+=`<circle cx="${F2(cx)}" cy="${F2(cy+h/2+R-E.smile*h)}" r="${F2(R)}" fill="${INK}"/>`}
+    if(E.lid)el+=`<rect x="${F2(cx-w)}" y="${F2(cy-h)}" width="${F2(2*w)}" height="${F2(h/2+E.lid*h)}" fill="${INK}"/>`;return el}).join('');
+  const ears=m.ears?'<circle cx="-.58" cy="-.69" r=".15" fill="#5b6172"/><circle cx=".58" cy="-.69" r=".15" fill="#5b6172"/>':'';
+  return `<symbol id="${id}" viewBox="-1.5 -1.5 3 3"><g stroke="#fff" stroke-width=".36" stroke-linejoin="round" fill="#fff">${body}</g><g stroke="${INK}" stroke-width=".13" stroke-linejoin="round" fill="${INK}">${body}</g>${ears}
+    <g class="eyes" style="animation-delay:${blinkDelay}s">${eyes}</g></symbol>`}
+const mochiDefs=MOCHI.map((_,i)=>mochiSymbol('pig'+i,i,'calm',(i*0.83)%5)).join('')+mochiSymbol('mochiHappy',0,'happy',0)+mochiSymbol('mochiLook',0,'look',1.3)+mochiSymbol('mochiSurprised',0,'surprised',0)+mochiSymbol('mochiSleepy',0,'sleepy',99);
+document.getElementById('pigDefs').insertAdjacentHTML('afterend',mochiDefs);
+
+// ---------- sound: tiny synth blips, start only after a tap ----------
+let AC=null,MASTER=null;
+// iPhone: let sounds play even when the ring/silent switch is on (Safari 16.4+)
+try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
+function audio(){if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();const comp=AC.createDynamicsCompressor();comp.threshold.value=-10;comp.knee.value=6;comp.ratio.value=4;
+    MASTER=AC.createGain();MASTER.gain.value=1;MASTER.connect(comp).connect(AC.destination)}
+  if(AC.state==='suspended')AC.resume();return AC}
+function blip(f1,f2,dur,type='sine',vol=.3,delay=0){if(!S.snd)return;try{const A=audio(),t=A.currentTime+delay,o=A.createOscillator(),g=A.createGain();
+  o.type=type;o.frequency.setValueAtTime(f1,t);o.frequency.exponentialRampToValueAtTime(f2,t+dur);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(MASTER);o.start(t);o.stop(t+dur+.03)}catch(e){}}
+// unlock audio on the first touch anywhere (iOS needs a gesture)
+['pointerdown','touchstart','keydown'].forEach(ev=>window.addEventListener(ev,()=>{if(S.snd)try{audio()}catch(e){}},{once:true,passive:true}));
+const SFX={x:()=>{blip(900,520,.07,'triangle',.4);blip(1800,1200,.03,'sine',.15)},clear:()=>blip(420,260,.09,'triangle',.3),
+  pig:()=>{blip(700,1300,.12,'sine',.45);blip(1050,1600,.1,'sine',.35,.11)},bad:()=>{blip(220,150,.22,'square',.18);blip(180,120,.22,'square',.14,.12)},
+  hint:()=>blip(880,1320,.14,'sine',.35),win:()=>[523,659,784,1047].forEach((f,i)=>blip(f,f*1.01,.26,'triangle',.4,i*.11))};
+
+// ---------- generator ----------
+function rng(seed){let s=seed>>>0;return()=>{s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+function shuffle(a,r){for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const D4=[[1,0],[-1,0],[0,1],[0,-1]];
+function randPerm(n,r){const p=[],used=new Array(n).fill(false);
+  function go(i){if(i===n)return true;for(const c of shuffle([...Array(n).keys()],r)){if(used[c])continue;if(i>0&&Math.abs(p[i-1]-c)<=1)continue;used[c]=true;p[i]=c;if(go(i+1))return true;used[c]=false}return false}
+  go(0);return p}
+// shape 0 = blobs, 1 = strips: each region is a 1-cell-wide band that runs straight and only turns when blocked
+function grow(n,sol,r,shape){const g=new Array(n*n).fill(-1);sol.forEach((c,i)=>g[i*n+c]=i);let left=n*n-n;
+  const size=new Array(n).fill(1);
+  const inb=(y,x)=>y>=0&&x>=0&&y<n&&x<n;
+  if(shape){ // snakes: [cell, heading] for both ends
+    const ends=sol.map((c,i)=>{const h=r()<0.5;return[[i*n+c,h?[0,1]:[1,0]],[i*n+c,h?[0,-1]:[-1,0]]]});
+    let stuck=0;
+    while(left>0&&stuck<n*8){const reg=Math.floor(r()*n),ei=r()<0.5?0:1,[k,[dy,dx]]=ends[reg][ei],y=k/n|0,x=k%n;
+      const opts=[[dy,dx,30],[dx,dy,1],[-dx,-dy,1]].filter(([a,b])=>inb(y+a,x+b)&&g[(y+a)*n+x+b]===-1);
+      if(!opts.length){stuck++;continue}stuck=0;let t=r()*opts.reduce((s,o)=>s+o[2],0),o=opts[0];for(const op of opts){if(t<op[2]){o=op;break}t-=op[2]}
+      const nk=(y+o[0])*n+x+o[1];g[nk]=reg;size[reg]++;left--;ends[reg][ei]=[nk,[o[0],o[1]]]}
+  }
+  while(left>0){let reg=Math.floor(r()*n);if(r()<0.5){let mn=Infinity;for(let i=0;i<n;i++)if(size[i]<mn){mn=size[i];reg=i}}const cand=[];for(let k=0;k<n*n;k++){if(g[k]!==reg)continue;const y=k/n|0,x=k%n;for(const[dy,dx]of D4){const yy=y+dy,xx=x+dx;if(!inb(yy,xx))continue;if(g[yy*n+xx]===-1)cand.push(yy*n+xx)}}
+    if(!cand.length)continue;g[cand[Math.floor(r()*cand.length)]]=reg;size[reg]++;left--}return g}
+function solve(n,g,limit){const res=[];const colU=new Array(n).fill(false),regU=new Array(n).fill(false),p=[];
+  function go(row){if(res.length>=limit)return;if(row===n){res.push(p.slice());return}for(let c=0;c<n;c++){if(colU[c])continue;const rg=g[row*n+c];if(regU[rg])continue;if(row>0&&Math.abs(p[row-1]-c)<=1)continue;colU[c]=regU[rg]=true;p[row]=c;go(row+1);colU[c]=regU[rg]=false}}
+  go(0);return res}
+function connected(n,g,reg){let start=-1,total=0;for(let k=0;k<n*n;k++)if(g[k]===reg){total++;if(start<0)start=k}if(!total)return false;const seen=new Set([start]),st=[start];while(st.length){const k=st.pop(),y=k/n|0,x=k%n;for(const[dy,dx]of D4){const yy=y+dy,xx=x+dx;if(yy<0||xx<0||yy>=n||xx>=n)continue;const kk=yy*n+xx;if(g[kk]===reg&&!seen.has(kk)){seen.add(kk);st.push(kk)}}}return seen.size===total}
+const MIN_REGION=3;
+function regionSize(n,g,reg){let c=0;for(let k=0;k<n*n;k++)if(g[k]===reg)c++;return c}
+function generateUnique(n,r,shape){
+  for(let attempt=0;attempt<200;attempt++){const sol=randPerm(n,r);const g=grow(n,sol,r,shape);const solSet=new Set(sol.map((c,i)=>i*n+c));
+    for(let step=0;step<400;step++){const alts=solve(n,g,2);if(alts.length===1){let ok=true;for(let i=0;i<n;i++)if(regionSize(n,g,i)<MIN_REGION)ok=false;if(ok)return{g,sol};break}
+      const alt=alts.find(a=>a.some((c,i)=>c!==sol[i]));const cells=shuffle(alt.map((c,i)=>i*n+c).filter(k=>!solSet.has(k)),r);let done=false;
+      for(const k of cells){const y=k/n|0,x=k%n,from=g[k];for(const[dy,dx]of shuffle(D4.slice(),r)){const yy=y+dy,xx=x+dx;if(yy<0||xx<0||yy>=n||xx>=n)continue;const to=g[yy*n+xx];if(to===from)continue;if(regionSize(n,g,from)<=MIN_REGION)continue;g[k]=to;if(connected(n,g,from)){done=true;break}g[k]=from}if(done)break}
+      if(!done)break}}
+  return null}
+// ---------- logic solver (used for difficulty grading and explained hints) ----------
+let PAL=[0,1,2,3,4,5,6,7,8,9,10];
+const REGION_NAMES=['橘色','藍色','綠色','紫色','黃色','粉紅色','灰色','咖啡色','紅色','青綠色','深藍色'];
+function newState(n,g){return{n,g,cand:new Uint8Array(n*n).fill(1),pig:new Uint8Array(n*n)}}
+function attacks(n,g,a,b){if(a===b)return false;const ay=a/n|0,ax=a%n,by=b/n|0,bx=b%n;return ay===by||ax===bx||g[a]===g[b]||(Math.abs(ay-by)<=1&&Math.abs(ax-bx)<=1)}
+function units(n,g){const u=[];for(let i=0;i<n;i++){const r=[],c=[];for(let j=0;j<n;j++){r.push(i*n+j);c.push(j*n+i)}u.push({kind:'row',i,cells:r,name:i===0?'最上面那一橫排':i===n-1?'最下面那一橫排':`上數第 ${i+1} 橫排`});u.push({kind:'col',i,cells:c,name:i===0?'最左邊那一直排':i===n-1?'最右邊那一直排':`左數第 ${i+1} 直排`})}
+  for(let i=0;i<n;i++)u.push({kind:'reg',i,cells:[...Array(n*n).keys()].filter(k=>g[k]===i),name:REGION_NAMES[PAL[i]]});return u}
+function place(st,k){const{n,g}=st;st.pig[k]=1;st.cand[k]=0;for(let j=0;j<n*n;j++)if(attacks(n,g,k,j))st.cand[j]=0}
+function findStep(st,maxLevel,U){
+  const{n,g,cand,pig}=st;U=U||units(n,g);
+  const has=u=>u.cells.some(k=>pig[k]);const pos=k=>`第${(k/n|0)+1}行第${k%n+1}列`;const T=x=>`<span class="tg">${x}</span>`,F=x=>`<span class="fc">${x}</span>`,H=(h,w)=>`<b class="head">${h}</b>${w}`;
+  const rel=(a,b)=>g[a]===g[b]?'同顏色':(a/n|0)===(b/n|0)?'同一橫排':a%n===b%n?'同一直排':'貼在旁邊';
+  const why=(k,c)=>{const m={};c.forEach(j=>{const r=rel(k,j);m[r]=(m[r]||0)+1});const p=Object.entries(m);return p.length===1?`這 ${c.length} 格都跟它${p[0][0]}`:p.map(([r,v])=>`${v} 格跟它${r}`).join('、')};const cs=u=>u.cells.filter(k=>cand[k]);
+  // L1a: Xs around an existing guinea pig
+  for(let k=0;k<n*n;k++)if(pig[k]){const e=[];for(let j=0;j<n*n;j++)if(cand[j]&&attacks(n,g,k,j))e.push(j);
+    if(e.length)return{level:1,elim:e,focus:[k],msg:H(`${T('橘框格')}都打叉`,'這隻墨糰已經確定了。牠的同一橫排、同一直排、同顏色，還有周圍一圈，都不能再放。')}}
+  // L1b: only one spot left in a unit
+  for(const u of U){if(has(u))continue;const c=cs(u);if(c.length===1)return{level:1,place:c[0],focus:u.cells,msg:H(`${T('橘框格')}放墨糰`,`${u.name}只剩這一格能放了。`)}}
+  if(maxLevel<2)return null;
+  // L2: a region squeezed into one row/column (or a row/column squeezed into one region)
+  for(const u of U){if(has(u))continue;const c=cs(u);if(c.length<2)continue;
+    const tests=u.kind==='reg'?['row','col']:['reg'];
+    for(const t of tests){const idx=k=>t==='row'?(k/n|0):t==='col'?k%n:g[k];const v=idx(c[0]);if(!c.every(k=>idx(k)===v))continue;
+      const other=U.find(x=>x.kind===t&&x.i===v);const e=other.cells.filter(k=>cand[k]&&!u.cells.includes(k));
+      if(e.length)return{level:2,elim:e,focus:c,msg:u.kind==='reg'?H(`${T('橘框格')}都打叉`,`${u.name}只剩${F('虛線框')}這幾格，全都在${other.name}。所以這一排的墨糰一定是${u.name}的，這排其他顏色都不會有。`):H(`${T('橘框格')}都打叉`,`${u.name}只剩${F('虛線框')}這幾格，全都是${other.name}。所以這一排的墨糰就是${other.name}那一隻，其他地方的${other.name}都不會有。`)}}}
+  if(maxLevel<3)return null;
+  // L3: a cell that would leave some unit with no space
+  // start from the tightest unit (fewest open cells), the way a person would look
+  const tight=U.filter(u=>!has(u)).map(u=>({u,c:cs(u)})).filter(x=>x.c.length>=2).sort((a,b)=>a.c.length-b.c.length);
+  for(const{u,c}of tight){const e=[];for(let k=0;k<n*n;k++){if(!cand[k]||u.cells.includes(k))continue;if(c.every(j=>attacks(n,g,k,j)))e.push(k)}
+    if(e.length){e.length=1;return{level:3,elim:e,focus:c,msg:H(`${T('橘框格')}打叉`,`${u.name}只剩${F('虛線框')}這 ${c.length} 格。橘框格如果放墨糰，會把這 ${c.length} 格全部擋掉（${why(e[0],c)}），${u.name}就沒地方放了。`)}}}
+  if(maxLevel<4)return null;
+  // L4: N regions packed into N rows/columns (and the reverse)
+  const groups=[['reg','row'],['reg','col'],['row','reg'],['col','reg']];
+  for(const[a,b]of groups){const A=U.filter(u=>u.kind===a&&!has(u));const idx=k=>b==='row'?(k/n|0):b==='col'?k%n:g[k];
+    const m=A.length;for(let mask=1;mask<(1<<m);mask++){const pick=A.filter((_,i)=>mask>>i&1);const sz=pick.length;if(sz<2||sz>=m)continue;
+      const set=new Set();pick.forEach(u=>cs(u).forEach(k=>set.add(idx(k))));if(set.size!==sz)continue;
+      const inPick=new Set(pick.flatMap(u=>u.cells));const e=[];for(let k=0;k<n*n;k++)if(cand[k]&&set.has(idx(k))&&!inPick.has(k))e.push(k);
+      if(e.length){const bn=[...set].map(v=>U.find(x=>x.kind===b&&x.i===v).name);return{level:4,elim:e,focus:[...inPick].filter(k=>cand[k]),msg:a==='reg'?H(`${T('橘框格')}都打叉`,`${pick.map(u=>u.name).join('、')}只能放在${F('虛線框')}裡，剛好擠在${bn.join('、')}這 ${sz} 排。這幾排的墨糰都被它們用掉了，這幾排其他顏色都不會有。`):H(`${T('橘框格')}都打叉`,`${pick.map(u=>u.name).join('、')}這 ${sz} 排只剩${F('虛線框')}的格子，全是${bn.join('、')}。這 ${sz} 種顏色都被這幾排用掉了，其他地方的${bn.join('、')}都不會有。`)}}}}
+  return null}
+function applyStep(st,s){if(s.place!==undefined)place(st,s.place);if(s.elim)s.elim.forEach(k=>st.cand[k]=0)}
+function logicSolve(n,g,maxLevel){const st=newState(n,g),U=units(n,g);let top=0;
+  for(let i=0;i<500;i++){let c=0;for(let k=0;k<n*n;k++)c+=st.pig[k];if(c===n)return top;const s=findStep(st,maxLevel,U);if(!s)return -1;top=Math.max(top,s.level);applyStep(st,s)}return -1}
+
+// Difficulty = the hardest technique the puzzle needs (not its size):
+// easy: only "one spot left" and "a colour sits in one row"; normal: also "this cell blocks a small region";
+// hard: also "N colours packed into N rows"; extreme: logic alone runs out, needs trial and error.
+function tierOf(n,g){const lv=logicSolve(n,g,4);return lv<0?3:lv<=2?0:lv-2}
+// Build a puzzle that logic of level <= T can solve (and, for T>=3, that level T-1 cannot):
+// grow regions, then nudge region borders one cell at a time, keeping any change that lets the solver get further.
+function progressOf(n,g,T){const st=newState(n,g),U=units(n,g);let lv=0;
+  for(let i=0;i<400;i++){let c=0;for(let k=0;k<n*n;k++)c+=st.pig[k];if(c===n)return{done:true,score:1e9,lv};const s=findStep(st,T,U);if(!s)break;lv=Math.max(lv,s.level);applyStep(st,s)}
+  let sc=0;for(let k=0;k<n*n;k++)sc+=st.pig[k]*n+(st.cand[k]?0:1);return{done:false,score:sc,lv}}
+function genTier(n,r,shape,T){
+  for(let attempt=0;attempt<30;attempt++){const sol=randPerm(n,r);const g=grow(n,sol,r,shape);const solSet=new Set(sol.map((c,i)=>i*n+c));
+    let cur=progressOf(n,g,T);
+    for(let it=0;it<1500&&!cur.done;it++){const k=Math.floor(r()*n*n);if(solSet.has(k))continue;const y=k/n|0,x=k%n,from=g[k];
+      const nb=D4.map(([dy,dx])=>[y+dy,x+dx]).filter(([yy,xx])=>yy>=0&&xx>=0&&yy<n&&xx<n).map(([yy,xx])=>g[yy*n+xx]).filter(v=>v!==from);if(!nb.length)continue;
+      if(regionSize(n,g,from)<=MIN_REGION)continue;const to=nb[Math.floor(r()*nb.length)];g[k]=to;if(!connected(n,g,from)){g[k]=from;continue}
+      const nx=progressOf(n,g,T);if(nx.score>=cur.score)cur=nx;else g[k]=from}
+    if(!cur.done)continue;
+    if(T>=3&&logicSolve(n,g,T-1)>=0)continue; // too easy for this tier
+    return{g,sol}}
+  return null}
+
+// ---------- tidy layouts modelled on hand-made boards ----------
+// 'band': diagonal stripes, every row the previous one shifted by a cell.
+// 'frame': one thick L along two edges, the rest cut into straight rectangles.
+function bandLayout(n,r){const D=2*n-1,w=new Array(n).fill(1);let left=D-n;
+  while(left>0){const i=Math.floor(r()*n),edge=i===0||i===n-1;if(w[i]>=(edge?2:3))continue;w[i]++;left--}
+  if(r()<.5)w.reverse();const cut=[];let a=0;for(const x of w){a+=x;cut.push(a)}
+  const flip=r()<.5,g=[];for(let y=0;y<n;y++)for(let x=0;x<n;x++){const d=flip?x+y:(n-1-x)+y;let b=0;while(d>=cut[b])b++;g.push(b)}return g}
+function frameLayout(n,r){const g=new Array(n*n).fill(-1);let id=0;
+  // thick L along two random edges
+  const t=1+(r()<.45?1:0),top=r()<.5,leftSide=r()<.5;
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){const inRow=top?y<t:y>=n-t,inCol=leftSide?x<t:x>=n-t;if(inRow||inCol)g[y*n+x]=0}
+  id=1;const rects=[[top?t:0,leftSide?t:0,n-t,n-t]]; // y,x,h,w
+  while(rects.length<n-1){rects.sort((a,b)=>b[2]*b[3]-a[2]*a[3]);
+    const pick=r()<.7?0:Math.floor(r()*rects.length),[y,x,h,w]=rects[pick];if(h*w<2){if(rects.every(q=>q[2]*q[3]<2))break;continue}
+    const vert=w>h?true:h>w?false:r()<.5;const len=vert?w:h;if(len<2)continue;
+    const c=1+Math.floor(r()*(len-1));rects.splice(pick,1);
+    if(vert)rects.push([y,x,h,c],[y,x+c,h,w-c]);else rects.push([y,x,c,w],[y+c,x,h-c,w])}
+  rects.forEach(([y,x,h,w])=>{for(let a=y;a<y+h;a++)for(let b=x;b<x+w;b++)g[a*n+b]=id;id++});
+  return id===n?g:null}
+// nudge single edge cells until the board has exactly one solution; a moved cell must touch its new colour on 2+ sides so edges stay smooth
+function tidyUnique(n,g,r,maxMoves){const cost=c=>c===0?1e3:c-1;let cnt=solve(n,g,40).length,moves=0;
+  for(let it=0;it<2500&&cnt!==1;it++){const k=Math.floor(r()*n*n),y=k/n|0,x=k%n,from=g[k];
+    const opts={};for(const[dy,dx]of D4){const a=y+dy,b=x+dx;if(a<0||b<0||a>=n||b>=n)continue;const v=g[a*n+b];if(v!==from)opts[v]=(opts[v]||0)+1}
+    const ok=Object.keys(opts).filter(v=>opts[v]>=2);if(!ok.length||regionSize(n,g,from)<=1)continue;
+    const to=+ok[Math.floor(r()*ok.length)];g[k]=to;if(!connected(n,g,from)){g[k]=from;continue}
+    const c2=solve(n,g,40).length;if(cost(c2)<=cost(cnt)){if(c2!==cnt)moves++;cnt=c2;if(moves>maxMoves)return null}else g[k]=from}
+  if(cnt!==1)return null;return{g,sol:solve(n,g,1)[0]}}
+function genLayout(n,r,kind){for(let a=0;a<12;a++){const g=kind==='band'?bandLayout(n,r):frameLayout(n,r);if(!g)continue;const p=tidyUnique(n,g,r,n*2);if(p)return p}return null}
+
+// shape: 0 blobs, 1 strips, 2 diagonal bands, 3 frame + rectangles
+function generate(n,seed,d,shape){const r=rng(seed);let last=null;
+  if(shape>=2){const kinds=shape===3&&d<=1?['frame','band']:['band'];
+    for(const kind of kinds)for(let i=0;i<60;i++){const p=genLayout(n,r,kind);if(p&&tierOf(n,p.g)===d)return p}}
+  if(d===0){for(let i=0;i<8;i++){const p=genTier(n,r,shape,2);if(p)return p}}
+  for(let i=0;i<900;i++){const p=generateUnique(n,r,shape);if(!p)continue;last=p;if(tierOf(n,p.g)===d)return p}
+  return last}
+
+// ---------- state ----------
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let S={snd:Number(store.get('gp-snd',1)),n:Number(store.get('gp-size',7)),d:Number(store.get('gp-level-kind',0)),level:1,g:[],sol:[],marks:[],hist:[],secs:0,won:false,lost:false,lives:3,mistakes:0,hints:0,combo:0,auto:0};
+const MAX_LIVES=3;
+let timer=null;
+
+// hand-picked boards (transcribed by the player). g: one char per cell, region index in base 11
+const SPECIALS={'60':{name:'第 60 關',n:9,g:'000000111000002222033304442530004642533374642538374647533374447555577777555557777',pal:[10, 4, 6, 9, 5, 2, 3, 7, 8]},'59':{name:'第 59 關',n:10,g:'0122233445012233445502233445552233445566233445566733445566773445566778445566778845566778885566777889',pal:[5, 4, 10, 6, 0, 3, 7, 1, 8, 2]},'57':{name:'第 57 關',n:9,g:'522111111551151877555551877566577877566507887556607877377777777333444477444477777',pal:[0, 1, 2, 3, 4, 5, 6, 9, 8]},'55':{name:'第 55 關',n:11,g:'5599966003344996600337499660033779966003377796600337711660033771180003377118800337711888033771188aa337711888a27777118aaa2'}};
+S.sp=store.get('gp-sp',null);if(S.sp&&!SPECIALS[S.sp])S.sp=null;
+const K=()=>S.sp?'sp-'+S.sp:S.n+'-'+S.d;
+// every difficulty mixes both block shapes: about half the levels use long strips
+// mostly tidy hand-made-style layouts: 40% diagonal bands, 30% frame, 15% strips, 15% blobs
+const shapeOf=(n,d,lv)=>{const x=rng(lv*2654435761+n*97+d*13)();return x<.4?2:x<.7?3:x<.85?1:0};
+const D_NAME=['簡單','普通','困難','超難'];
+function load(){
+  const SP=S.sp?SPECIALS[S.sp]:null;if(SP)S.n=SP.n;PAL=SP&&SP.pal?SP.pal:[0,1,2,3,4,5,6,7,8,9,10];
+  const n=S.n;S.level=SP?+S.sp:store.get('gp-lv-'+K(),1);
+  $('setLabel').textContent=SP?'特別關':`${n}×${n} ${D_NAME[S.d]}`;$('lvl').textContent=S.level;$('win').hidden=true;
+  $('prog').classList.toggle('tight',n>=10);$('next').textContent=SP?'回到一般關卡':'下一關';
+  tip('產生關卡中…');clearInterval(timer);
+  setTimeout(()=>{
+  const saved=store.get('gp-bd-'+K(),null);
+  let p;if(SP){const g=[...SP.g].map(c=>parseInt(c,11));p={g,sol:solve(n,g,1)[0]}}
+  else{const shape=shapeOf(n,S.d,S.level);p=generate(n,S.level*7919+n*104729+S.d*15485863+shape*49979687,S.d,shape)}
+  S.g=p.g;S.sol=p.sol;S.won=false;S.hist=[];
+  S.auto=store.get('gp-auto-'+(SP?'sp':S.d),SP?0:S.d===0?1:0);$('auto').setAttribute('aria-pressed',String(!!S.auto));
+  S.lost=false;S.combo=0;$('lose').hidden=true;
+  if(saved&&saved.level===S.level&&saved.marks.length===n*n){S.marks=saved.marks;S.secs=saved.secs||0;S.lives=saved.lives??MAX_LIVES;S.mistakes=saved.mistakes||0;S.hints=saved.hints||0}
+  else{S.marks=new Array(n*n).fill(0);S.secs=0;S.lives=MAX_LIVES;S.mistakes=0;S.hints=0}
+  drawLives();setMascot('mochiLook');lastAct=Date.now();
+  build();render();startTimer();tip(SP?`<b class="head">特別關：${SP.name}（${n}×${n}）</b>${n} 種顏色，每色、每橫排、每直排各一隻，不能相鄰。`:`<b class="head">每色、每橫排、每直排各一隻，不能相鄰</b>${DIFF_TIP[S.d]}`);
+  },30);
+}
+const DIFF_TIP=['先找只剩一格能放的顏色或排。','先看格子最少的顏色，誰會同時擋住它？','需要多步推理，卡住就按提示。','需要假設和試錯，可以多用記號。'];
+function save(){if(!S.g.length||S.won)return;store.set('gp-bd-'+K(),{level:S.level,marks:S.marks,secs:S.secs,lives:S.lives,mistakes:S.mistakes,hints:S.hints})}
+const HEART='<svg viewBox="0 0 24 24"><path d="M12 21s-8.5-5.2-8.5-11.3A4.7 4.7 0 0112 7a4.7 4.7 0 018.5 2.7C20.5 15.8 12 21 12 21z" fill="#e4574a" stroke="#2a1f17" stroke-width="2.2" stroke-linejoin="round"/><ellipse cx="8.3" cy="9.6" rx="1.6" ry="1.1" fill="#fff" opacity=".7"/></svg>';
+function drawLives(breakIdx){const el=$('lives');el.innerHTML=Array.from({length:MAX_LIVES},()=>HEART).join('');
+  [...el.children].forEach((h,i)=>{if(i>=S.lives)h.classList.add('lost');if(i===breakIdx)h.classList.add('break')});el.setAttribute('aria-label',`剩下 ${S.lives} 次放錯機會`)}
+// ---- feedback helpers
+const hapLabel=(()=>{try{const l=document.createElement('label'),i=document.createElement('input');i.type='checkbox';i.setAttribute('switch','');l.appendChild(i);
+  l.setAttribute('aria-hidden','true');l.style.cssText='position:fixed;left:-200px;top:0;width:1px;height:1px;opacity:0;pointer-events:none';document.body.appendChild(l);return l}catch(e){return null}})();
+function buzz(p){try{if(navigator.vibrate){navigator.vibrate(p);return}if(hapLabel){hapLabel.click();if(Array.isArray(p)&&p.length>2)setTimeout(()=>hapLabel.click(),110)}}catch(e){}}
+function stamp(k){const d=cells[k];if(!d)return;d.classList.remove('stamp');void d.offsetWidth;d.classList.add('stamp');setTimeout(()=>d.classList.remove('stamp'),340)}
+function popText(k,text,cls){const d=cells[k],w=$('wrap');if(!d)return;const a=d.getBoundingClientRect(),b=w.getBoundingClientRect();
+  const el=document.createElement('div');el.className='pop '+(cls||'');el.textContent=text;
+  el.style.left=Math.min(Math.max(a.left-b.left+a.width/2,50),b.width-50)+'px';el.style.top=(a.top-b.top+a.height/2)+'px';w.appendChild(el);setTimeout(()=>el.remove(),1050)}
+let mascotT=null;
+function setMascot(id,ms){const u=document.querySelector('.mascot use');if(u)u.setAttribute('href','#'+id);clearTimeout(mascotT);if(ms)mascotT=setTimeout(()=>setMascot('mochiLook'),ms)}
+let lastAct=Date.now(),sleepy=false;
+function poke(){lastAct=Date.now();if(sleepy){sleepy=false;setMascot('mochiLook')}}
+const PRAISE=['Nice!','Good!','讚！','漂亮！'];
+function onCorrect(k){const n=S.n,y=k/n|0,x=k%n;S.combo++;SFX.pig();buzz(15);
+  cells.forEach((d,j)=>{const yy=j/n|0,xx=j%n;if(j===k||!(yy===y||xx===x||S.g[j]===S.g[k]))return;d.style.setProperty('--rd',(Math.abs(yy-y)+Math.abs(xx-x))*45+'ms');d.classList.remove('rip');void d.offsetWidth;d.classList.add('rip');setTimeout(()=>d.classList.remove('rip'),1200)});
+  popText(k,S.combo>=2?`Combo ×${S.combo}`:PRAISE[Math.random()*PRAISE.length|0],S.combo>=3?'combo big':S.combo>=2?'combo':'');setMascot('mochiHappy',1400)}
+function onWrong(k){S.lives--;S.mistakes++;S.combo=0;SFX.bad();buzz([40,60,40]);
+  const d=cells[k];d.classList.remove('wrong');void d.offsetWidth;d.classList.add('wrong');setTimeout(()=>d.classList.remove('wrong'),800);
+  popText(k,S.lives>0?`不是這裡！剩 ${S.lives} 次`:'沒機會了','err');drawLives(S.lives);setMascot('mochiSurprised',1600);
+  if(S.lives<=0){S.lost=true;clearInterval(timer);setTimeout(()=>{$('lose').hidden=false},700)}}
+function startTimer(){clearInterval(timer);timer=setInterval(()=>{if(S.won||S.lost||document.hidden)return;S.secs++;showTime();if(S.secs%5===0)save();
+    if(!sleepy&&Date.now()-lastAct>30000){sleepy=true;setMascot('mochiSleepy');tip('<b class="head">墨糰有點想睡…</b>卡住了嗎？按提示看看下一步。')}},1000);showTime()}
+function fmt(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function showTime(){$('time').textContent=fmt(S.secs)}
+
+// ---------- board ----------
+let cells=[];
+function build(){
+  const n=S.n,b=$('board');b.innerHTML='';b.style.gridTemplateColumns=`repeat(${n},minmax(0,1fr))`;b.style.gridTemplateRows=`repeat(${n},minmax(0,1fr))`;cells=[];
+  for(let k=0;k<n*n;k++){const d=document.createElement('button');d.className='cell';d.dataset.k=k;
+    d.style.setProperty('--c',`var(--r${PAL[S.g[k]]+1})`);d.dataset.r=PAL[S.g[k]];d.setAttribute('aria-label',`第${(k/n|0)+1}行第${k%n+1}列`);b.appendChild(d);cells.push(d)}
+  const pr=$('prog');pr.innerHTML='';for(let i=0;i<n;i++){const e=document.createElement('i');e.innerHTML=`<svg><use href="#pig${PAL[i]}"/></svg>`;pr.appendChild(e)}
+}
+function conflicts(){
+  const n=S.n,bad=new Set(),pigs=[];S.marks.forEach((m,k)=>{if(m===2)pigs.push(k)});
+  for(let a=0;a<pigs.length;a++)for(let b=a+1;b<pigs.length;b++){const p=pigs[a],q=pigs[b],py=p/n|0,px=p%n,qy=q/n|0,qx=q%n;
+    if(py===qy||px===qx||S.g[p]===S.g[q]||(Math.abs(py-qy)<=1&&Math.abs(px-qx)<=1)){bad.add(p);bad.add(q)}}
+  return{bad,pigs}}
+let lastBad=0,loneSet=new Set();
+function render(){
+  const{bad,pigs}=conflicts();
+  const n0=S.n,pigs0=[];S.marks.forEach((m,k)=>{if(m===2)pigs0.push(k)});
+  const blk=new Set();if(S.auto)pigs0.forEach(p=>{const py=p/n0|0,px=p%n0;for(let j=0;j<n0*n0;j++){if(j===p||S.marks[j]===2)continue;const y=j/n0|0,x=j%n0;if(y===py||x===px||S.g[j]===S.g[p]||(Math.abs(y-py)<=1&&Math.abs(x-px)<=1))blk.add(j)}});
+  cells.forEach((d,k)=>{const m=S.marks[k];const ax=m===0&&blk.has(k);const want=m+(ax?'a':'');
+    if(d.dataset.m!==want){d.dataset.m=want;d.innerHTML=ax?'<svg class="ax"><use href="#xmark"/></svg>':m===1?'<svg class="x"><use href="#xmark"/></svg>':m===2?`<svg class="pig"><use href="#pig${PAL[S.g[k]]}"/></svg>`:m===3?'<svg class="dx"><use href="#xmark"/></svg>':m===4?`<svg class="dpig"><use href="#pig${PAL[S.g[k]]}"/></svg><span class="q">?</span>`:''}
+    d.classList.toggle('bad',bad.has(k))});
+  const regs=new Set(pigs.filter(k=>!bad.has(k)).map(k=>S.g[k]));
+  // which rows / columns / colours already have a guinea pig, and how many open cells the rest still have
+  const n=S.n,rowP=new Set(),colP=new Set(),regP=new Set();pigs.forEach(k=>{rowP.add(k/n|0);colP.add(k%n);regP.add(S.g[k])});
+  const near=new Set();pigs.forEach(k=>{const y=k/n|0,x=k%n;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const yy=y+dy,xx=x+dx;if(yy>=0&&xx>=0&&yy<n&&xx<n)near.add(yy*n+xx)}});
+  const blocked=k=>S.marks[k]!==2&&(rowP.has(k/n|0)||colP.has(k%n)||regP.has(S.g[k])||near.has(k));
+  const open=k=>S.marks[k]!==1&&S.marks[k]!==2&&!blocked(k);
+  const cnt={r:new Array(n).fill(0),c:new Array(n).fill(0),g:new Array(n).fill(0)};
+  for(let k=0;k<n*n;k++)if(open(k)){cnt.r[k/n|0]++;cnt.c[k%n]++;cnt.g[S.g[k]]++}
+  const lone=new Set();
+  for(let k=0;k<n*n;k++)if(open(k)){const y=k/n|0,x=k%n,gi=S.g[k];
+    if((!rowP.has(y)&&cnt.r[y]===1)||(!colP.has(x)&&cnt.c[x]===1)||(!regP.has(gi)&&cnt.g[gi]===1))lone.add(k)}
+  cells.forEach((d,k)=>{const y=k/n|0,x=k%n;d.classList.toggle('done',blk.has(k));d.classList.toggle('lone',!S.won&&lone.has(k))});
+  loneSet=lone;
+  [...$('prog').children].forEach((e,i)=>{e.classList.toggle('on',regs.has(i));let b=e.querySelector('b');
+    if(regP.has(i)){if(b)b.remove();return}
+    if(!b){b=document.createElement('b');e.appendChild(b)}b.textContent=cnt.g[i]||'!';b.className=cnt.g[i]===1?'one':cnt.g[i]===0?'zero':''});
+  if(bad.size>lastBad)SFX.bad();lastBad=bad.size;
+  if(pigs.length===S.n&&bad.size===0&&!S.won){S.won=true;if(!S.sp)store.set('gp-lv-'+K(),S.level+1);store.set('gp-bd-'+K(),null);
+    const stars=S.mistakes===0&&S.hints===0?3:S.mistakes<=1&&S.hints<=1?2:1,bk='gp-best-'+K()+'-'+S.level,best=store.get(bk,null);
+    if(best===null||S.secs<best)store.set(bk,S.secs);
+    const STAR='<svg viewBox="0 0 24 24"><path d="M12 2.6l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.2l-5.9 3.2 1.3-6.5L2.5 9.4l6.6-.8z" fill="#ffcf4d" stroke="#2a1f17" stroke-width="2" stroke-linejoin="round"/></svg>';
+    $('stars').innerHTML=[0,1,2].map(i=>STAR.replace('<svg ',`<svg class="${i<stars?'on':'off'}" style="--sd:${300+i*180}ms" `)).join('');
+    $('winTitle').innerHTML=stars===3?'完美推理！':'全部找到了！';
+    $('winTime').textContent=`第 ${S.level} 關　${fmt(S.secs)}`+(best!==null&&best<S.secs?`　最佳 ${fmt(best)}`:best===null||S.secs<best?'　新紀錄':'');
+    setMascot('mochiHappy');celebrate(pigs)}
+}
+function setMarks(changes){ // [[k,val],...]
+  if(typeof clearFocus==='function'&&changes.length)clearFocus();
+  if(S.lost)return;poke();
+  const sol=new Set(S.sol.map((c,i)=>i*S.n+c)),wrong=[],right=[];
+  changes=changes.map(([k,v])=>{if(v===2&&S.marks[k]!==2){if(sol.has(k))right.push(k);else{wrong.push(k);return[k,1]}}return[k,v]});
+  const real=changes.filter(([k,v])=>S.marks[k]!==v);
+  if(real.length){S.hist.push(real.map(([k])=>[k,S.marks[k]]));real.forEach(([k,v])=>S.marks[k]=v)}
+  if(right.length)right.forEach(onCorrect);else if(!wrong.length&&real.length){if(real.some(([,v])=>v===4))SFX.pig();else if(real.some(([,v])=>v===1||v===3)){SFX.x();buzz(8)}else{SFX.clear();buzz(5)}}
+  render();real.forEach(([k,v])=>{if(v===1||v===3)stamp(k)});wrong.forEach(onWrong);save()}
+
+// Input. marks: 0 empty, 1 X, 2 pig, 3 maybe-X, 4 maybe-pig
+// tap: toggle X · double tap: place / remove guinea pig · drag: fill X along the path, or erase if the whole path is already X
+let drag=null,draft=false,lastTap=null;
+const xVal=()=>draft?3:1,pigVal=()=>draft?4:2;
+function skipped(m){return draft?(m===1||m===2||m===4):(m===2||m===4)}
+function tapTarget(m){if(draft){if(m===1||m===2)return m;return m===0?3:0}return m===1||m===2?0:1}
+function onTap(k){const now=Date.now(),m=S.marks[k];
+  if(lastTap&&lastTap.k===k&&lastTap.placed&&now-lastTap.t<450){lastTap=null;return} // second tap of a double tap on a cell the first tap already filled
+  if(!draft&&S.auto&&m===0&&loneSet.has(k)&&!(lastTap&&lastTap.k===k)){setMarks([[k,2]]);lastTap={k,t:now,prev:m,placed:true};return}
+  if(lastTap&&lastTap.k===k&&now-lastTap.t<380){const prev=lastTap.prev;lastTap=null;
+    if(S.hist.length>lastTap_len){const h=S.hist.pop();h.forEach(([j,v])=>S.marks[j]=v)}
+    if(draft&&(prev===1||prev===2)){render();return}
+    setMarks([[k,prev===pigVal()?0:pigVal()]]);return}
+  lastTap={k,t:now,prev:m};lastTap_len=S.hist.length;setMarks([[k,tapTarget(m)]])}
+let lastTap_len=0;
+function cellAt(e){const el=document.elementFromPoint(e.clientX,e.clientY);const c=el&&el.closest('.cell');return c?+c.dataset.k:-1}
+function lineCells(a,b){const n=S.n,ay=a/n|0,ax=a%n,by=b/n|0,bx=b%n,steps=Math.max(Math.abs(by-ay),Math.abs(bx-ax)),out=[];
+  for(let i=1;i<=steps;i++)out.push(Math.round(ay+(by-ay)*i/steps)*n+Math.round(ax+(bx-ax)*i/steps));return out}
+function paintPath(){const d=drag,before=d.path.map(k=>S.marks[k]),xs=d.path.filter(k=>!skipped(d.orig.get(k)));
+  const erase=xs.length>0&&xs.every(k=>d.orig.get(k)===xVal());
+  d.path.forEach(k=>{const o=d.orig.get(k);S.marks[k]=skipped(o)?o:(erase?0:xVal())});render();
+  d.path.forEach((k,i)=>{if(S.marks[k]!==before[i]){d.ticks=(d.ticks||0)+1;const f=Math.min(520+d.ticks*55,1500);blip(f,f*.75,.05,'triangle',.35);buzz(6);if(!erase)stamp(k)}})}
+$('board').addEventListener('pointerdown',e=>{const c=e.target.closest('.cell');if(!c||S.won)return;e.preventDefault();
+  const k=+c.dataset.k;drag={start:k,last:k,moved:false,path:[k],orig:new Map([[k,S.marks[k]]])};$('board').setPointerCapture(e.pointerId);
+  c.classList.add('down');if(S.lost)return;const dd=drag;c.classList.add('press');
+  dd.lp=setTimeout(()=>{c.classList.remove('press');if(drag!==dd||dd.moved)return;dd.long=true;lastTap=null;const m=S.marks[k];if(draft&&(m===1||m===2))return;setMarks([[k,m===pigVal()?0:pigVal()]])},330)});
+$('board').addEventListener('pointermove',e=>{if(!drag)return;const k=cellAt(e);if(k<0||k===drag.last)return;
+  if(!drag.moved){clearTimeout(drag.lp);cells[drag.start].classList.remove('press','down');if(typeof clearFocus==='function')clearFocus()}
+  drag.moved=true;for(const j of lineCells(drag.last,k)){if(!drag.orig.has(j)){drag.orig.set(j,S.marks[j]);drag.path.push(j)}}drag.last=k;paintPath()});
+function endDrag(){if(!drag)return;const d=drag;drag=null;clearTimeout(d.lp);cells[d.start]&&cells[d.start].classList.remove('press','down');
+  if(d.long||S.lost)return;
+  if(d.moved){lastTap=null;poke();const batch=d.path.filter(k=>S.marks[k]!==d.orig.get(k)).map(k=>[k,d.orig.get(k)]);if(batch.length){S.hist.push(batch);save()}render();
+    const added=batch.filter(([k])=>S.marks[k]===xVal()).length;if(added)praiseDrag(d,added)}
+  else onTap(d.start)}
+// cheer for long X sweeps; based on how many cells were swept, never on whether they were right
+function praiseDrag(d,added){const n=S.n,X=xVal(),full=m=>m===X||m===2||m===4;let clean=false;
+  const rows=new Set(d.path.map(k=>k/n|0)),cols=new Set(d.path.map(k=>k%n));
+  rows.forEach(y=>{if(d.path.filter(k=>(k/n|0)===y).length>=n-1&&[...Array(n).keys()].every(x=>full(S.marks[y*n+x])))clean=true});
+  cols.forEach(x=>{if(d.path.filter(k=>k%n===x).length>=n-1&&[...Array(n).keys()].every(y=>full(S.marks[y*n+x])))clean=true});
+  const t=clean?'Clean!':added>=8?'Awesome!':added>=5?'Great!':added>=3?'Nice!':'';if(!t)return;
+  popText(d.last,t,clean||added>=8?'big':'');if(clean||added>=5)SFX.hint()}
+$('board').addEventListener('pointerup',endDrag);$('board').addEventListener('pointercancel',endDrag);
+$('board').addEventListener('keydown',e=>{const c=e.target.closest('.cell');if(!c)return;const k=+c.dataset.k,n=S.n;
+  if(e.key===' '||e.key==='Enter'){e.preventDefault();if(!S.won){if(e.shiftKey){const m=S.marks[k];setMarks([[k,m===pigVal()?0:pigVal()]])}else setMarks([[k,tapTarget(S.marks[k])]])}return}
+  const mv={ArrowUp:-n,ArrowDown:n,ArrowLeft:-1,ArrowRight:1}[e.key];if(mv!==undefined){e.preventDefault();const t=k+mv;if(t>=0&&t<n*n)cells[t].focus()}});
+
+$('undo').onclick=()=>{if(S.won)return;const h=S.hist.pop();if(!h)return;h.forEach(([k,v])=>S.marks[k]=v);render();save()};
+$('draft').onclick=()=>{draft=!draft;$('draft').setAttribute('aria-pressed',String(draft));$('wrap').classList.toggle('draft',draft)};
+$('clearDraft').onclick=()=>{if(S.won)return;setMarks(S.marks.map((m,k)=>[k,m>=3?0:m]))};
+function restart(){S.marks=new Array(S.n*S.n).fill(0);S.hist=[];S.lives=MAX_LIVES;S.mistakes=0;S.hints=0;S.combo=0;S.secs=0;S.lost=false;
+  $('lose').hidden=true;drawLives();setMascot('mochiLook');clearFocus();render();save();startTimer();tip('<b class="head">重新開始</b>放錯機會補滿 3 次了。')}
+$('reset').onclick=()=>{if(S.won)return;restart()};
+$('retry').onclick=restart;
+$('auto').onclick=()=>{S.auto=S.auto?0:1;store.set('gp-auto-'+(S.sp?'sp':S.d),S.auto);$('auto').setAttribute('aria-pressed',String(!!S.auto));render();
+  tip(S.auto?'<b class="head">自動排除：開</b>放好的墨糰，同排、同列、同色和周圍會自動變淡打叉。':'<b class="head">自動排除：關</b>叉要自己打，比較考驗推理。')};
+let pending=null;
+let toastT=null;
+function tip(html){$('tip').innerHTML=html;if(document.body.classList.contains('zoom')&&html&&!/產生關卡|每色、每橫排/.test(html)){const t=$('toast');t.innerHTML=html;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},6000)}}
+$('toast').onclick=()=>{$('toast').hidden=true};
+function clearFocus(){cells.forEach(d=>{d.classList.remove('focus','target');d.querySelectorAll('.ghost').forEach(x=>x.remove())})}
+function applyHint(st){const ch=[];if(st.place!==undefined)ch.push([st.place,2]);(st.elim||[]).forEach(k=>ch.push([k,1]));setMarks(ch);(st.place!==undefined?[st.place]:st.elim).forEach(flash)}
+$('hint').onclick=()=>{if(S.won||S.lost)return;poke();const n=S.n,solSet=new Set(S.sol.map((c,i)=>i*n+c)),key=S.marks.join('');
+  if(pending&&pending.key===key){const st=pending.step;pending=null;clearFocus();applyHint(st);tip('標好了。');return}
+  clearFocus();
+  let k=S.marks.findIndex((m,j)=>m===2&&!solSet.has(j));
+  if(k>=0){setMarks([[k,1]]);flash(k);tip('<b class="head">這隻放錯了</b>已幫你改成叉。');return}
+  k=S.marks.findIndex((m,j)=>m===1&&solSet.has(j));
+  if(k>=0){setMarks([[k,0]]);flash(k);tip('<b class="head">這格不該打叉</b>墨糰其實可能在這裡，已幫你拿掉叉。');return}
+  const st=newState(n,S.g);S.marks.forEach((m,j)=>{if(m===2){st.pig[j]=1;st.cand[j]=0}else if(m===1)st.cand[j]=0});
+  const step=findStep(st,4);
+  if(!step){S.hints++;const j=S.sol.map((c,i)=>i*n+c).find(j=>S.marks[j]!==2);if(j!==undefined){setMarks([[j,2]]);flash(j)}tip('<b class="head">這步要靠試錯</b>光靠推理找不出下一步，直接幫你放一隻。');return}
+  const tg=step.place!==undefined?[step.place]:step.elim;
+  step.focus.forEach(j=>{if(!tg.includes(j))cells[j].classList.add('focus')});
+  tg.forEach(j=>{cells[j].classList.add('target');cells[j].insertAdjacentHTML('beforeend',step.place!==undefined?`<svg class="pig ghost"><use href="#pig${PAL[S.g[j]]}"/></svg>`:'<svg class="x ghost"><use href="#xmark"/></svg>')});
+  pending={key:S.marks.join(''),step};SFX.hint();S.hints++;save();
+  tip(step.msg+'<small>再按一次提示，幫你標上</small>')};
+function celebrate(pigs){SFX.win();
+  pigs.sort((a,b)=>a-b).forEach((k,i)=>{cells[k].classList.add('wave');const u=cells[k].querySelector('.pig use');if(u)u.setAttribute('href','#mochiHappy');cells[k].style.setProperty('--dl',i*90+'ms')});
+  
+  confetti();setTimeout(()=>{$('win').hidden=false},250+pigs.length*90)}
+function confetti(){if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;const cv=$('confetti');cv.hidden=false;const r=cv.getBoundingClientRect(),dpr=devicePixelRatio||1;
+  cv.width=r.width*dpr;cv.height=r.height*dpr;const c=cv.getContext('2d');c.scale(dpr,dpr);
+  const cols=['#c0716a','#e8cb7f','#afbe9a','#6489b0','#f3c0cd','#d0996c'];
+  const P=Array.from({length:90},()=>({x:r.width/2,y:r.height*.55,vx:(Math.random()-.5)*9,vy:-Math.random()*9-4,s:4+Math.random()*5,a:Math.random()*6,va:(Math.random()-.5)*.3,c:cols[Math.random()*cols.length|0]}));
+  let t=0;(function step(){t++;c.clearRect(0,0,r.width,r.height);P.forEach(p=>{p.vy+=.28;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.a+=p.va;c.save();c.translate(p.x,p.y);c.rotate(p.a);c.fillStyle=p.c;c.strokeStyle='#2a1f17';c.lineWidth=1.2;c.fillRect(-p.s/2,-p.s/3,p.s,p.s*.66);c.strokeRect(-p.s/2,-p.s/3,p.s,p.s*.66);c.restore()});
+    if(t<110)requestAnimationFrame(step);else{c.clearRect(0,0,r.width,r.height);cv.hidden=true}})()}
+function flash(k){const d=cells[k];d.classList.remove('hint');void d.offsetWidth;d.classList.add('hint');setTimeout(()=>d.classList.remove('hint'),1600)}
+function leaveSpecial(){S.sp=null;store.set('gp-sp',null);S.n=Number(store.get('gp-size',7))}
+$('next').onclick=()=>{if(S.sp)leaveSpecial();load()};
+Object.keys(SPECIALS).sort((a,b)=>a-b).forEach(id=>{const sp=SPECIALS[id],b=document.createElement('button');b.className='spBtn';b.textContent=`${sp.name}・${sp.n}×${sp.n}`;
+  b.onclick=()=>{$('settings').hidden=true;save();S.snd=pick.snd;store.set('gp-snd',S.snd);S.sp=id;store.set('gp-sp',id);S.g=[];load()};$('spList').appendChild(b)});
+function setZoom(on){document.body.classList.toggle('zoom',on);store.set('gp-zoom',on?1:0);const b=$('zoomIn');b.setAttribute('aria-pressed',String(on));b.setAttribute('aria-label',on?'縮小棋盤，顯示提示':'放大棋盤')}
+$('zoomIn').onclick=()=>setZoom(!document.body.classList.contains('zoom'));
+setZoom(!!store.get('gp-zoom',0));
+$('helpBtn').onclick=()=>{$('settings').hidden=true;$('help').hidden=!$('help').hidden};$('helpClose').onclick=()=>{$('help').hidden=true};
+let pick={};
+function syncSeg(){document.querySelectorAll('.seg').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.v===pick[sg.dataset.key]))))}
+$('setBtn').onclick=()=>{const open=$('settings').hidden;$('help').hidden=true;if(open){pick={n:S.sp?Number(store.get('gp-size',7)):S.n,d:S.d,snd:S.snd};syncSeg()}$('settings').hidden=!open};
+document.querySelectorAll('.seg').forEach(sg=>sg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;pick[sg.dataset.key]=+b.dataset.v;syncSeg()}));
+$('setGo').onclick=()=>{$('settings').hidden=true;S.snd=pick.snd;store.set('gp-snd',S.snd);if(!S.sp&&pick.n===S.n&&pick.d===S.d)return;save();if(S.sp)leaveSpecial();S.n=pick.n;S.d=pick.d;
+  store.set('gp-size',S.n);store.set('gp-level-kind',S.d);S.g=[];load()};
+
+load();
+</script>
+
+<script>
+if('serviceWorker' in navigator){addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').then(r=>{
+  r.addEventListener('updatefound',()=>{const w=r.installing;w&&w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller){try{tip('<b class="head">有新版本</b>關掉再打開 App 就會更新。')}catch(e){}}})})}).catch(()=>{})})}
+</script>
+</body>
+</html>
