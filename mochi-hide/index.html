@@ -383,26 +383,28 @@ function place(st,k){const{n,g}=st;st.pig[k]=1;st.cand[k]=0;for(let j=0;j<n*n;j+
 function findStep(st,maxLevel,U){
   const{n,g,cand,pig}=st;U=U||units(n,g);
   const has=u=>u.cells.some(k=>pig[k]);const pos=k=>`第${(k/n|0)+1}行第${k%n+1}列`;const T=x=>`<span class="tg">${x}</span>`,F=x=>`<span class="fc">${x}</span>`,H=(h,w)=>`<b class="head">${h}</b>${w}`;
-  const rel=(a,b)=>g[a]===g[b]?'同顏色':(a/n|0)===(b/n|0)?'同一橫排':a%n===b%n?'同一直排':'貼在旁邊';
-  const why=(k,c)=>{const m={};c.forEach(j=>{const r=rel(k,j);m[r]=(m[r]||0)+1});const p=Object.entries(m);return p.length===1?`這 ${c.length} 格都跟它${p[0][0]}`:p.map(([r,v])=>`${v} 格跟它${r}`).join('、')};const cs=u=>u.cells.filter(k=>cand[k]);
+  const rel=(a,b)=>{const dy=(b/n|0)-(a/n|0),dx=b%n-a%n;
+    if(Math.abs(dy)<=1&&Math.abs(dx)<=1){const v=dy<0?'上':dy>0?'下':'',h=dx<0?'左':dx>0?'右':'';return '緊貼在它'+(v&&h?h+v+'角':v?(v==='上'?'上面':'下面'):(h==='左'?'左邊':'右邊'))}
+    return g[a]===g[b]?'跟它同顏色':(a/n|0)===(b/n|0)?'跟它同一橫排':'跟它同一直排'};
+  const why=(k,c)=>{const m={};c.forEach(j=>{const r=rel(k,j);m[r]=(m[r]||0)+1});const p=Object.entries(m);return p.length===1&&c.length>1?`這 ${c.length} 格都${p[0][0]}`:p.map(([r,v])=>`${v} 格${r}`).join('、')};const cs=u=>u.cells.filter(k=>cand[k]);
   // L1a: Xs around an existing guinea pig
   for(let k=0;k<n*n;k++)if(pig[k]){const e=[];for(let j=0;j<n*n;j++)if(cand[j]&&attacks(n,g,k,j))e.push(j);
-    if(e.length)return{level:1,elim:e,focus:[k],msg:H(`${T('橘框格')}都打叉`,'這隻墨糰已經確定了。牠的同一橫排、同一直排、同顏色，還有周圍一圈，都不能再放。')}}
+    if(e.length)return{level:1,elim:e,focus:[k],msg:H(`${T('紅框格')}都打叉`,'這隻墨糰已經確定了。牠的同一橫排、同一直排、同顏色，還有周圍一圈，都不能再放。')}}
   // L1b: only one spot left in a unit
-  for(const u of U){if(has(u))continue;const c=cs(u);if(c.length===1)return{level:1,place:c[0],focus:u.cells,msg:H(`${T('橘框格')}放墨糰`,`${u.name}只剩這一格能放了。`)}}
+  for(const u of U){if(has(u))continue;const c=cs(u);if(c.length===1)return{level:1,place:c[0],focus:u.cells,msg:H(`${T('紅框格')}放墨糰`,`${u.name}只剩這一格能放了。`)}}
   if(maxLevel<2)return null;
   // L2: a region squeezed into one row/column (or a row/column squeezed into one region)
   for(const u of U){if(has(u))continue;const c=cs(u);if(c.length<2)continue;
     const tests=u.kind==='reg'?['row','col']:['reg'];
     for(const t of tests){const idx=k=>t==='row'?(k/n|0):t==='col'?k%n:g[k];const v=idx(c[0]);if(!c.every(k=>idx(k)===v))continue;
       const other=U.find(x=>x.kind===t&&x.i===v);const e=other.cells.filter(k=>cand[k]&&!u.cells.includes(k));
-      if(e.length)return{level:2,elim:e,focus:c,msg:u.kind==='reg'?H(`${T('橘框格')}都打叉`,`${u.name}只剩${F('虛線框')}這幾格，全都在${other.name}。所以這一排的墨糰一定是${u.name}的，這排其他顏色都不會有。`):H(`${T('橘框格')}都打叉`,`${u.name}只剩${F('虛線框')}這幾格，全都是${other.name}。所以這一排的墨糰就是${other.name}那一隻，其他地方的${other.name}都不會有。`)}}}
+      if(e.length)return{level:2,elim:e,focus:c,msg:u.kind==='reg'?H(`${T('紅框格')}都打叉`,`${u.name}只剩${F('虛線框')}這幾格，全都在${other.name}。所以這一排的墨糰一定是${u.name}的，這排其他顏色都不會有。`):H(`${T('紅框格')}都打叉`,`${u.name}只剩${F('虛線框')}這幾格，全都是${other.name}。所以這一排的墨糰就是${other.name}那一隻，其他地方的${other.name}都不會有。`)}}}
   if(maxLevel<3)return null;
   // L3: a cell that would leave some unit with no space
   // start from the tightest unit (fewest open cells), the way a person would look
   const tight=U.filter(u=>!has(u)).map(u=>({u,c:cs(u)})).filter(x=>x.c.length>=2).sort((a,b)=>a.c.length-b.c.length);
   for(const{u,c}of tight){const e=[];for(let k=0;k<n*n;k++){if(!cand[k]||u.cells.includes(k))continue;if(c.every(j=>attacks(n,g,k,j)))e.push(k)}
-    if(e.length){e.length=1;return{level:3,elim:e,focus:c,msg:H(`${T('橘框格')}打叉`,`${u.name}只剩${F('虛線框')}這 ${c.length} 格。橘框格如果放墨糰，會把這 ${c.length} 格全部擋掉（${why(e[0],c)}），${u.name}就沒地方放了。`)}}}
+    if(e.length){e.length=1;return{level:3,elim:e,focus:c,msg:H(`${T('紅框格')}打叉`,`${u.name}只剩${F('虛線框')}這 ${c.length} 格。紅框格如果放墨糰，會把這 ${c.length} 格全部擋掉（${why(e[0],c)}），${u.name}就沒地方放了。`)}}}
   if(maxLevel<4)return null;
   // L4: N regions packed into N rows/columns (and the reverse)
   const groups=[['reg','row'],['reg','col'],['row','reg'],['col','reg']];
@@ -410,7 +412,7 @@ function findStep(st,maxLevel,U){
     const m=A.length;for(let mask=1;mask<(1<<m);mask++){const pick=A.filter((_,i)=>mask>>i&1);const sz=pick.length;if(sz<2||sz>=m)continue;
       const set=new Set();pick.forEach(u=>cs(u).forEach(k=>set.add(idx(k))));if(set.size!==sz)continue;
       const inPick=new Set(pick.flatMap(u=>u.cells));const e=[];for(let k=0;k<n*n;k++)if(cand[k]&&set.has(idx(k))&&!inPick.has(k))e.push(k);
-      if(e.length){const bn=[...set].map(v=>U.find(x=>x.kind===b&&x.i===v).name);return{level:4,elim:e,focus:[...inPick].filter(k=>cand[k]),msg:a==='reg'?H(`${T('橘框格')}都打叉`,`${pick.map(u=>u.name).join('、')}只能放在${F('虛線框')}裡，剛好擠在${bn.join('、')}這 ${sz} 排。這幾排的墨糰都被它們用掉了，這幾排其他顏色都不會有。`):H(`${T('橘框格')}都打叉`,`${pick.map(u=>u.name).join('、')}這 ${sz} 排只剩${F('虛線框')}的格子，全是${bn.join('、')}。這 ${sz} 種顏色都被這幾排用掉了，其他地方的${bn.join('、')}都不會有。`)}}}}
+      if(e.length){const bn=[...set].map(v=>U.find(x=>x.kind===b&&x.i===v).name);return{level:4,elim:e,focus:[...inPick].filter(k=>cand[k]),msg:a==='reg'?H(`${T('紅框格')}都打叉`,`${pick.map(u=>u.name).join('、')}只能放在${F('虛線框')}裡，剛好擠在${bn.join('、')}這 ${sz} 排。這幾排的墨糰都被它們用掉了，這幾排其他顏色都不會有。`):H(`${T('紅框格')}都打叉`,`${pick.map(u=>u.name).join('、')}這 ${sz} 排只剩${F('虛線框')}的格子，全是${bn.join('、')}。這 ${sz} 種顏色都被這幾排用掉了，其他地方的${bn.join('、')}都不會有。`)}}}}
   return null}
 function applyStep(st,s){if(s.place!==undefined)place(st,s.place);if(s.elim)s.elim.forEach(k=>st.cand[k]=0)}
 function logicSolve(n,g,maxLevel){const st=newState(n,g),U=units(n,g);let top=0;
