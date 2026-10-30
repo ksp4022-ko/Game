@@ -724,8 +724,16 @@ load();
 </script>
 
 <script>
-if('serviceWorker' in navigator){addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').then(r=>{
-  r.addEventListener('updatefound',()=>{const w=r.installing;w&&w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller){try{tip('<b class="head">有新版本</b>關掉再打開 App 就會更新。')}catch(e){}}})})}).catch(()=>{})})}
+// Service worker: always check GitHub for a newer sw.js, and reload once when a new version takes over
+if('serviceWorker' in navigator){addEventListener('load',()=>{
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{
+    const check=()=>r.update().catch(()=>{});check();
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});
+  }).catch(()=>{});
+  let reloaded=false;const had=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!had||reloaded)return;reloaded=true;
+    try{save()}catch(e){}location.reload()});
+})}
 </script>
 </body>
 </html>
