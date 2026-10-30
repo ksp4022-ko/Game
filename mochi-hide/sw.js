@@ -1,5 +1,5 @@
 // Offline cache for 墨糰藏哪裡. Bump VERSION whenever you upload a new index.html.
-const VERSION = 'mochi-v7';
+const VERSION = 'mochi-v8';
 const SHELL = ['./', './index.html', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png', './icons/favicon-32.png'];
